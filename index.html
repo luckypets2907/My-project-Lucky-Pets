@@ -120,7 +120,7 @@
       Object.values(agrupados).forEach((producto, index) => {
         const card = document.createElement('div');
         card.className = "bg-white rounded shadow p-4";
-        const tallasHtml = producto.tallas.map(t => `<div class='border rounded px-2 py-1 text-sm mb-1'>${t.tallaLetra} (${t.tallaNum}) - S/ ${t.precio}</div>`).join('');
+        const tallasHtml = producto.tallas.map(t => `<div class='border rounded px-2 py-1 text-xs mb-1'>${t.tallaLetra} (${t.tallaNum}) - S/ ${t.precio}</div>`).join('');
 
         card.innerHTML = `
           <button onclick="document.getElementById('detalle-${index}').classList.toggle('hidden')" class="text-xl font-bold mb-2 text-left w-full hover:underline">${producto.nombre}</button>
