@@ -121,23 +121,33 @@
         const card = document.createElement('div');
         card.className = "bg-white rounded shadow p-4";
 
-        const coloresHtml = `<table class='w-full text-xs mt-2'>
-  <thead>
-    <tr class='bg-gray-100'>
-      <th class='text-left px-2 py-1 border'>Talla</th>
-      <th class='text-left px-2 py-1 border'>Colores disponibles</th>
-      <th class='text-left px-2 py-1 border'>Precio</th>
-    </tr>
-  </thead>
-  <tbody>
-    ${Object.entries(producto.colores).flatMap(([color, tallas]) => tallas.map(t => `
-      <tr>
-        <td class='border px-2 py-1'>${t.tallaLetra} (${t.tallaNum})</td>
-        <td class='border px-2 py-1'>${color}</td>
-        <td class='border px-2 py-1'>S/ ${t.precio}</td>
-      </tr>`)).join('')}
-  </tbody>
-</table>`;
+        const coloresHtml = (() => {
+  const mapaTallas = {};
+  Object.entries(producto.colores).forEach(([color, tallas]) => {
+    tallas.forEach(t => {
+      const key = `${t.tallaLetra} (${t.tallaNum}) - S/ ${t.precio}`;
+      if (!mapaTallas[key]) mapaTallas[key] = new Set();
+      mapaTallas[key].add(color);
+    });
+  });
+
+  const rows = Object.entries(mapaTallas).map(([tallaPrecio, coloresSet]) => {
+    const [talla, precio] = tallaPrecio.split(' - ');
+    const colores = Array.from(coloresSet).join(', ');
+    return `<tr><td class='border px-2 py-1'>${talla}</td><td class='border px-2 py-1'>${colores}</td><td class='border px-2 py-1'>${precio}</td></tr>`;
+  }).join('');
+
+  return `<table class='w-full text-xs mt-2'>
+    <thead>
+      <tr class='bg-gray-100'>
+        <th class='text-left px-2 py-1 border'>Talla</th>
+        <th class='text-left px-2 py-1 border'>Colores disponibles</th>
+        <th class='text-left px-2 py-1 border'>Precio</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+})();
 
         card.innerHTML = `
           <button onclick="document.getElementById('detalle-${index}').classList.toggle('hidden')" class="text-xl font-bold mb-2 text-left w-full hover:underline">${producto.nombre}</button>
