@@ -121,13 +121,23 @@
         const card = document.createElement('div');
         card.className = "bg-white rounded shadow p-4";
 
-        const coloresHtml = Object.entries(producto.colores).map(([color, tallas]) => `
-          <div>
-            <p class='mt-2 font-medium'>${color}:</p>
-            <div class='grid grid-cols-3 gap-2'>
-              ${tallas.map(t => `<div class='border rounded px-2 py-1 text-xs mb-1'>${t.tallaLetra} (${t.tallaNum}) - S/ ${t.precio}</div>`).join('')}
-            </div>
-          </div>`).join('');
+        const coloresHtml = `<table class='w-full text-xs mt-2'>
+  <thead>
+    <tr class='bg-gray-100'>
+      <th class='text-left px-2 py-1 border'>Talla</th>
+      <th class='text-left px-2 py-1 border'>Colores disponibles</th>
+      <th class='text-left px-2 py-1 border'>Precio</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${Object.entries(producto.colores).flatMap(([color, tallas]) => tallas.map(t => `
+      <tr>
+        <td class='border px-2 py-1'>${t.tallaLetra} (${t.tallaNum})</td>
+        <td class='border px-2 py-1'>${color}</td>
+        <td class='border px-2 py-1'>S/ ${t.precio}</td>
+      </tr>`)).join('')}
+  </tbody>
+</table>`;
 
         card.innerHTML = `
           <button onclick="document.getElementById('detalle-${index}').classList.toggle('hidden')" class="text-xl font-bold mb-2 text-left w-full hover:underline">${producto.nombre}</button>
