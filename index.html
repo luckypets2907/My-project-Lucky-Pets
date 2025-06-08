@@ -112,17 +112,34 @@
       const agrupados = {};
 
       filtrados.forEach(p => {
-        const key = `${p.nombre}-${p.color}-${p.sexo}-${p.seccion}`;
-        if (!agrupados[key]) agrupados[key] = { ...p, tallas: [] };
-        agrupados[key].tallas.push({ tallaLetra: p.tallaLetra, tallaNum: p.tallaNum, precio: p.precio });
+        const key = `${p.nombre}-${p.sexo}-${p.seccion}`;
+        if (!agrupados[key]) agrupados[key] = { nombre: p.nombre, sexo: p.sexo, seccion: p.seccion, colores: {}, colorSet: new Set() };
+        if (!agrupados[key].colores[p.color]) agrupados[key].colores[p.color] = [];
+        agrupados[key].colores[p.color].push({ tallaLetra: p.tallaLetra, tallaNum: p.tallaNum, precio: p.precio });
+        agrupados[key].colorSet.add(p.color);
       });
 
       Object.values(agrupados).forEach((producto, index) => {
         const card = document.createElement('div');
         card.className = "bg-white rounded shadow p-4";
-        const tallasHtml = producto.tallas.map(t => `<div class='border rounded px-2 py-1 text-xs mb-1'>${t.tallaLetra} (${t.tallaNum}) - S/ ${t.precio}</div>`).join('');
+        const coloresHtml = Array.from(producto.colorSet).map(c => `<div class='border rounded px-2 py-1 text-xs mb-1'>${c}</div>`).join('');
 
-        card.innerHTML = `\$1<p class="mb-1 font-semibold mt-2">Colores disponibles:</p><div class="grid grid-cols-3 gap-2"><div class='border rounded px-2 py-1 text-xs mb-1'>${producto.color}</div></div><div id="detalle-${index}" class="hidden">
+        card.innerHTML = `
+          <button onclick="document.getElementById('detalle-${index}').classList.toggle('hidden')" class="text-xl font-bold mb-2 text-left w-full hover:underline">${producto.nombre}</button>
+          <div class="text-sm">
+            <p class="mb-1">Sexo: ${producto.sexo}</p>
+            <p class="mb-1">Sección: ${producto.seccion}</p>
+            <p class="mb-1 font-semibold mt-2">Colores disponibles:</p>
+            <div class="grid grid-cols-3 gap-2">${coloresHtml}</div>
+            <div id="detalle-${index}" class="hidden">
+              <p class="mb-1 font-semibold mt-2">Tallas disponibles:</p>
+              ${Object.entries(producto.colores).map(([color, tallas]) => `
+                <p class='mt-2 font-medium'>${color}:</p>
+                <div class='grid grid-cols-3 gap-2'>${tallas.map(t => `<div class='border rounded px-2 py-1 text-xs mb-1'>${t.tallaLetra} (${t.tallaNum}) - S/ ${t.precio}</div>`).join('')}</div>
+              `).join('')}
+            </div>
+            <a target="_blank" href="https://wa.me/51986475803?text=Hola, estoy interesada en ${encodeURIComponent(producto.nombre)}" class="inline-block mt-3 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Consultar por WhatsApp</a>
+          </div>`;</div><div id="detalle-${index}" class="hidden">
               <p class="mb-1 font-semibold mt-2">Tallas disponibles:</p>
               <div class="grid grid-cols-3 gap-2">${tallasHtml}</div>
             </div>
