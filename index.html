@@ -117,19 +117,25 @@
         agrupados[key].tallas.push({ tallaLetra: p.tallaLetra, tallaNum: p.tallaNum, precio: p.precio });
       });
 
-      Object.values(agrupados).forEach(producto => {
+      Object.values(agrupados).forEach((producto, index) => {
         const card = document.createElement('div');
         card.className = "bg-white rounded shadow p-4";
         const tallasHtml = producto.tallas.map(t => `<li>${t.tallaLetra} (${t.tallaNum}) - S/ ${t.precio}</li>`).join('');
+
         card.innerHTML = `
-          <h2 class="text-xl font-bold mb-2">${producto.nombre}</h2>
-          <p class="mb-1">Color: ${producto.color}</p>
-          <p class="mb-1">Sexo: ${producto.sexo}</p>
-          <p class="mb-1">Sección: ${producto.seccion}</p>
-          <p class="mb-1 font-semibold">Tallas disponibles:</p>
-          <ul class="list-disc list-inside text-sm">${tallasHtml}</ul>
-          <a target="_blank" href="https://wa.me/51986475803?text=Hola, estoy interesada en ${encodeURIComponent(producto.nombre)}" class="inline-block mt-3 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Consultar por WhatsApp</a>
+          <button onclick="document.getElementById('detalle-${index}').classList.toggle('hidden')" class="text-xl font-bold mb-2 text-left w-full hover:underline">${producto.nombre}</button>
+          <div class="text-sm">
+            <p class="mb-1">Color: ${producto.color}</p>
+            <p class="mb-1">Sexo: ${producto.sexo}</p>
+            <p class="mb-1">Sección: ${producto.seccion}</p>
+            <div id="detalle-${index}" class="hidden">
+              <p class="mb-1 font-semibold mt-2">Tallas disponibles:</p>
+              <ul class="list-disc list-inside text-sm">${tallasHtml}</ul>
+            </div>
+            <a target="_blank" href="https://wa.me/51986475803?text=Hola, estoy interesada en ${encodeURIComponent(producto.nombre)}" class="inline-block mt-3 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Consultar por WhatsApp</a>
+          </div>
         `;
+
         contenedor.appendChild(card);
       });
     }
