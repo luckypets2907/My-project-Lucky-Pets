@@ -13,39 +13,43 @@
   </div>
 
   <script>
-    // URL de tu Google Sheet en formato CSV
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vShCH9HDtvW9cXzRtCnBsW77XcgnHuq9yQ83lKOgRQUMrXEC20-KH990PXe6gLWNjE6h6hqMXTHSKso/pub?gid=1385147949&single=true&output=csv";
 
     async function cargarProductos() {
-      const res = await fetch(sheetUrl);
-      const data = await res.text();
-      const filas = data.trim().split('\\n').map(f => f.split(','));
+      try {
+        const res = await fetch(sheetUrl);
+        const data = await res.text();
+        const filas = data.trim().split('\n').map(f => f.split(','));
 
-      const headers = filas[0];
-      const body = filas.slice(1);
-      const contenedor = document.getElementById('productos');
+        const headers = filas[0];
+        const body = filas.slice(1);
+        const contenedor = document.getElementById('productos');
 
-      body.forEach(col => {
-        const producto = {
-          nombre: col[headers.indexOf(\"Producto\")],
-          color: col[headers.indexOf(\"Color\")],
-          tallaNum: col[headers.indexOf(\"Talla en número\")],
-          tallaLetra: col[headers.indexOf(\"Talla en letras\")],
-          precio: col[headers.indexOf(\"Precio de venta\")],
-          cantidad: col[headers.indexOf(\"Cantidad comprada\")]
-        };
+        body.forEach(col => {
+          const producto = {
+            nombre: col[headers.indexOf("Producto")],
+            color: col[headers.indexOf("Color")],
+            tallaNum: col[headers.indexOf("Talla en número")],
+            tallaLetra: col[headers.indexOf("Talla en letras")],
+            precio: col[headers.indexOf("Precio de venta")],
+            cantidad: col[headers.indexOf("Cantidad comprada")]
+          };
 
-        const card = document.createElement('div');
-        card.className = \"bg-white rounded shadow p-4\";
-        card.innerHTML = `
-          <h2 class=\"text-xl font-bold mb-2\">${producto.nombre}</h2>
-          <p class=\"mb-1\">Color: ${producto.color}</p>
-          <p class=\"mb-1\">Talla: ${producto.tallaLetra} (${producto.tallaNum})</p>
-          <p class=\"mb-1 font-semibold\">Precio: S/ ${producto.precio}</p>
-          <a target=\"_blank\" href=\"https://wa.me/51986475803?text=Hola, estoy interesada en ${encodeURIComponent(producto.nombre)} talla ${producto.tallaLetra}\" class=\"inline-block mt-3 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600\">Consultar por WhatsApp</a>
-        `;
-        contenedor.appendChild(card);
-      });
+          const card = document.createElement('div');
+          card.className = "bg-white rounded shadow p-4";
+          card.innerHTML = `
+            <h2 class="text-xl font-bold mb-2">${producto.nombre}</h2>
+            <p class="mb-1">Color: ${producto.color}</p>
+            <p class="mb-1">Talla: ${producto.tallaLetra} (${producto.tallaNum})</p>
+            <p class="mb-1 font-semibold">Precio: S/ ${producto.precio}</p>
+            <a target="_blank" href="https://wa.me/51986475803?text=Hola, estoy interesada en ${encodeURIComponent(producto.nombre)} talla ${producto.tallaLetra}" class="inline-block mt-3 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Consultar por WhatsApp</a>
+          `;
+          contenedor.appendChild(card);
+        });
+      } catch (error) {
+        console.error("Error al cargar productos:", error);
+        document.getElementById('productos').innerHTML = '<p class="text-center text-red-600">Error al cargar productos. Verifica el enlace del Sheet.</p>';
+      }
     }
 
     cargarProductos();
