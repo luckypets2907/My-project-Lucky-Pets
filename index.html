@@ -7,13 +7,24 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 font-sans">
-  <div class="max-w-5xl mx-auto p-4">
+  <div class="max-w-6xl mx-auto p-4">
     <h1 class="text-3xl font-bold text-center mb-8">Catálogo de Productos</h1>
+
+    <div class="flex flex-col sm:flex-row gap-4 justify-center mb-6">
+      <select id="filtroSexo" class="p-2 border rounded">
+        <option value="">Todos los sexos</option>
+      </select>
+      <select id="filtroSeccion" class="p-2 border rounded">
+        <option value="">Todas las secciones</option>
+      </select>
+    </div>
+
     <div id="productos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
   </div>
 
   <script>
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vShCH9HDtvW9cXzRtCnBsW77XcgnHuq9yQ83lKOgRQUMrXEC20-KH990PXe6gLWNjE6h6hqMXTHSKso/pub?gid=1385147949&single=true&output=csv";
+    let productosData = [];
 
     async function cargarProductos() {
       try {
@@ -21,36 +32,79 @@
         const data = await res.text();
         const filas = data.trim().split('\n').map(f => f.split(','));
 
-        // Limpieza de encabezados (quita comillas y espacios extra)
         const headers = filas[0].map(h => h.replace(/^"|"$/g, '').trim());
         const body = filas.slice(1);
-        const contenedor = document.getElementById('productos');
 
-        body.forEach(col => {
-          const producto = {
-            nombre: col[headers.indexOf("Producto")],
-            color: col[headers.indexOf("Color")],
-            tallaNum: col[headers.indexOf("Talla en número")],
-            tallaLetra: col[headers.indexOf("Talla en letras")],
-            precio: col[headers.indexOf("Precio de venta")],
-            cantidad: col[headers.indexOf("Cantidad comprada")]
-          };
+        productosData = body.map(col => ({
+          nombre: col[headers.indexOf("Producto")],
+          color: col[headers.indexOf("Color")],
+          tallaNum: col[headers.indexOf("Talla en número")],
+          tallaLetra: col[headers.indexOf("Talla en letras")],
+          precio: col[headers.indexOf("Precio de venta")],
+          cantidad: col[headers.indexOf("Cantidad comprada")],
+          sexo: col[headers.indexOf("Sexo")],
+          seccion: col[headers.indexOf("Sección")]
+        }));
 
-          const card = document.createElement('div');
-          card.className = "bg-white rounded shadow p-4";
-          card.innerHTML = `
-            <h2 class="text-xl font-bold mb-2">${producto.nombre}</h2>
-            <p class="mb-1">Color: ${producto.color}</p>
-            <p class="mb-1">Talla: ${producto.tallaLetra} (${producto.tallaNum})</p>
-            <p class="mb-1 font-semibold">Precio: S/ ${producto.precio}</p>
-            <a target="_blank" href="https://wa.me/51986475803?text=Hola, estoy interesada en ${encodeURIComponent(producto.nombre)} talla ${producto.tallaLetra}" class="inline-block mt-3 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Consultar por WhatsApp</a>
-          `;
-          contenedor.appendChild(card);
-        });
+        cargarFiltros();
+        mostrarProductos();
       } catch (error) {
         console.error("Error al cargar productos:", error);
         document.getElementById('productos').innerHTML = '<p class="text-center text-red-600">Error al cargar productos. Verifica el enlace del Sheet.</p>';
       }
+    }
+
+    function cargarFiltros() {
+      const filtroSexo = document.getElementById('filtroSexo');
+      const filtroSeccion = document.getElementById('filtroSeccion');
+
+      const sexos = [...new Set(productosData.map(p => p.sexo).filter(Boolean))];
+      const secciones = [...new Set(productosData.map(p => p.seccion).filter(Boolean))];
+
+      sexos.forEach(s => {
+        const option = document.createElement('option');
+        option.value = s;
+        option.textContent = s;
+        filtroSexo.appendChild(option);
+      });
+
+      secciones.forEach(s => {
+        const option = document.createElement('option');
+        option.value = s;
+        option.textContent = s;
+        filtroSeccion.appendChild(option);
+      });
+
+      filtroSexo.addEventListener('change', mostrarProductos);
+      filtroSeccion.addEventListener('change', mostrarProductos);
+    }
+
+    function mostrarProductos() {
+      const contenedor = document.getElementById('productos');
+      contenedor.innerHTML = '';
+
+      const filtroSexo = document.getElementById('filtroSexo').value;
+      const filtroSeccion = document.getElementById('filtroSeccion').value;
+
+      const filtrados = productosData.filter(p =>
+        (!filtroSexo || p.sexo === filtroSexo) &&
+        (!filtroSeccion || p.seccion === filtroSeccion)
+      );
+
+      filtrados.forEach(producto => {
+        const card = document.createElement('div');
+        card.className = "bg-white rounded shadow p-4";
+        card.innerHTML = `
+          <h2 class="text-xl font-bold mb-2">${producto.nombre}</h2>
+          <p class="mb-1">Color: ${producto.color}</p>
+          <p class="mb-1">Talla: ${producto.tallaLetra} (${producto.tallaNum})</p>
+          <p class="mb-1">Sexo: ${producto.sexo}</p>
+          <p class="mb-1">Sección: ${producto.seccion}</p>
+          <p class="mb-1 font-semibold">Precio: S/ ${producto.precio}</p>
+          <a target="_blank" href="https://wa.me/51986475803?text=Hola, estoy interesada en ${encodeURIComponent(producto.nombre)} talla ${producto.tallaLetra}" class="inline-block mt-3 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Consultar por WhatsApp</a>
+        `;
+        contenedor.appendChild(card);
+      });
     }
 
     cargarProductos();
