@@ -150,7 +150,7 @@
 })();
 
         card.innerHTML = `
-          <button onclick="document.getElementById('detalle-${index}').classList.toggle('hidden')" class="text-xl font-bold mb-2 text-left w-full hover:underline">${producto.nombre}</button>
+          <button onclick="toggleDetalle(${index})" class="text-xl font-bold mb-2 text-left w-full hover:underline">${producto.nombre}</button>
           <div class="text-sm">
             <p class="mb-1">Sexo: ${producto.sexo}</p>
             <p class="mb-1">Sección: ${producto.seccion}</p>
@@ -163,6 +163,16 @@
         contenedor.appendChild(card);
       });
     }
+
+    function toggleDetalle(indice) {
+  document.querySelectorAll('[id^="detalle-"]').forEach((el, idx) => {
+    if (idx === indice) {
+      el.classList.toggle('hidden');
+    } else {
+      el.classList.add('hidden');
+    }
+  });
+}
 
     cargarProductos();
   </script>
