@@ -17,6 +17,9 @@
       <select id="filtroSeccion" class="p-2 border rounded">
         <option value="">Todas las secciones</option>
       </select>
+      <select id="filtroTalla" class="p-2 border rounded">
+        <option value="">Todas las tallas</option>
+      </select>
     </div>
 
     <div id="productos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
@@ -57,9 +60,11 @@
     function cargarFiltros() {
       const filtroSexo = document.getElementById('filtroSexo');
       const filtroSeccion = document.getElementById('filtroSeccion');
+      const filtroTalla = document.getElementById('filtroTalla');
 
       const sexos = [...new Set(productosData.map(p => p.sexo).filter(Boolean))];
       const secciones = [...new Set(productosData.map(p => p.seccion).filter(Boolean))];
+      const tallas = [...new Set(productosData.map(p => p.tallaLetra).filter(Boolean))];
 
       sexos.forEach(s => {
         const option = document.createElement('option');
@@ -75,8 +80,16 @@
         filtroSeccion.appendChild(option);
       });
 
+      tallas.forEach(t => {
+        const option = document.createElement('option');
+        option.value = t;
+        option.textContent = t;
+        filtroTalla.appendChild(option);
+      });
+
       filtroSexo.addEventListener('change', mostrarProductos);
       filtroSeccion.addEventListener('change', mostrarProductos);
+      filtroTalla.addEventListener('change', mostrarProductos);
     }
 
     function mostrarProductos() {
@@ -85,10 +98,12 @@
 
       const filtroSexo = document.getElementById('filtroSexo').value;
       const filtroSeccion = document.getElementById('filtroSeccion').value;
+      const filtroTalla = document.getElementById('filtroTalla').value;
 
       const filtrados = productosData.filter(p =>
         (!filtroSexo || p.sexo === filtroSexo) &&
-        (!filtroSeccion || p.seccion === filtroSeccion)
+        (!filtroSeccion || p.seccion === filtroSeccion) &&
+        (!filtroTalla || p.tallaLetra === filtroTalla)
       );
 
       filtrados.forEach(producto => {
