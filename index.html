@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Catálogo de Productos</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body class="bg-gray-100 font-sans">
   <div class="max-w-6xl mx-auto p-4">
@@ -35,34 +36,40 @@
     async function cargarProductos() {
       try {
         const res = await fetch(sheetUrl);
-        const data = await res.text();
-        const filas = data.trim().split('\n').map(f => f.split(','));
+        const csv = await res.text();
 
-        const headers = filas[0].map(h => h.replace(/^"|"$/g, '').trim());
-        const body = filas.slice(1);
+        const parsed = Papa.parse(csv, {
+          header: true,
+          skipEmptyLines: true,
+          transformHeader: h => (h || '').trim()
+        });
 
-        productosData = body.map(col => ({
-          nombre: col[headers.indexOf("Producto")],
-          color: col[headers.indexOf("Color")],
-          tallaNum: col[headers.indexOf("Talla en número")],
-          tallaLetra: col[headers.indexOf("Talla en letras")],
-          precio: col[headers.indexOf("PV_Minorista")],
-          cantidad: col[headers.indexOf("Cantidad comprada")],
-          resto: parseFloat((col[headers.indexOf("Resto")] || "").replace(",", ".").trim()) || 0,
-          sexo: col[headers.indexOf("Sexo")],
-          seccion: col[headers.indexOf("Colección")],
-          imagenes: [
-            col[headers.indexOf("Imagen 1")],
-            col[headers.indexOf("Imagen 2")],
-            col[headers.indexOf("Imagen 3")]
-          ].filter(Boolean)
+        const clean = v => (v ?? '').toString().replace(/\u00A0/g, ' ').trim();
+        const toNum = v => {
+          const s = clean(v).replace(',', '.').replace(/[^\d.-]/g, '');
+          const n = parseFloat(s);
+          return Number.isFinite(n) ? n : 0;
+        };
+
+        productosData = parsed.data.map(row => ({
+          nombre: clean(row['Producto']),
+          color: clean(row['Color']),
+          tallaNum: clean(row['Talla en número']),
+          tallaLetra: clean(row['Talla en letras']),
+          precio: clean(row['PV_Minorista']),
+          cantidad: clean(row['Cantidad comprada']),
+          resto: toNum(row['Resto']),
+          sexo: clean(row['Sexo']),
+          seccion: clean(row['Colección']),
+          imagenes: [clean(row['Imagen 1']), clean(row['Imagen 2']), clean(row['Imagen 3'])].filter(Boolean)
         })).filter(p => p.resto > 0);
 
         cargarFiltros();
         mostrarProductos();
       } catch (error) {
         console.error("Error al cargar productos:", error);
-        document.getElementById('productos').innerHTML = '<p class="text-center text-red-600">Error al cargar productos. Verifica el enlace del Sheet.</p>';
+        document.getElementById('productos').innerHTML =
+          '<p class="text-center text-red-600">Error al cargar productos. Verifica el enlace del Sheet.</p>';
       }
     }
 
