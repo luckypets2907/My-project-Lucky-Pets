@@ -50,9 +50,13 @@
           cantidad: col[headers.indexOf("Cantidad comprada")],
           resto: Number(col[headers.indexOf("Resto")]),
           sexo: col[headers.indexOf("Sexo")],
-          seccion: col[headers.indexOf("Colección")]
-        }))
-          .filter(p => p.resto > 0);
+          seccion: col[headers.indexOf("Colección")],
+          imagenes: [
+            col[headers.indexOf("Imagen 1")],
+            col[headers.indexOf("Imagen 2")],
+            col[headers.indexOf("Imagen 3")]
+          ].filter(Boolean)
+        })).filter(p => p.resto > 0);
 
         cargarFiltros();
         mostrarProductos();
@@ -111,70 +115,38 @@
         (!filtroTalla || p.tallaLetra === filtroTalla)
       );
 
-      const agrupados = {};
-      filtrados.forEach(p => {
-        const key = `${p.nombre}-${p.sexo}-${p.seccion}`;
-        if (!agrupados[key]) agrupados[key] = { nombre: p.nombre, sexo: p.sexo, seccion: p.seccion, colores: {} };
-        if (!agrupados[key].colores[p.color]) agrupados[key].colores[p.color] = [];
-        agrupados[key].colores[p.color].push({ tallaLetra: p.tallaLetra, tallaNum: p.tallaNum, precio: p.precio });
-      });
-
-      Object.values(agrupados).forEach((producto, index) => {
+      filtrados.forEach((producto, index) => {
         const card = document.createElement('div');
         card.className = "bg-white rounded shadow p-4";
 
-        const coloresHtml = (() => {
-  const mapaTallas = {};
-  Object.entries(producto.colores).forEach(([color, tallas]) => {
-    tallas.forEach(t => {
-      const key = `${t.tallaLetra} (${t.tallaNum}) - S/ ${t.precio}`;
-      if (!mapaTallas[key]) mapaTallas[key] = new Set();
-      mapaTallas[key].add(color);
-    });
-  });
-
-  const rows = Object.entries(mapaTallas).map(([tallaPrecio, coloresSet]) => {
-    const [talla, precio] = tallaPrecio.split(' - ');
-    const colores = Array.from(coloresSet).join(', ');
-    return `<tr><td class='border px-2 py-1'>${talla}</td><td class='border px-2 py-1'>${colores}</td><td class='border px-2 py-1'>${precio}</td></tr>`;
-  }).join('');
-
-  return `<table class='w-full text-xs mt-2'>
-    <thead>
-      <tr class='bg-gray-100'>
-        <th class='text-left px-2 py-1 border'>Talla</th>
-        <th class='text-left px-2 py-1 border'>Colores disponibles</th>
-        <th class='text-left px-2 py-1 border'>Precio</th>
-      </tr>
-    </thead>
-    <tbody>${rows}</tbody>
-  </table>`;
-})();
+        const sliderHtml = producto.imagenes.length > 0 ? `
+          <div class="relative w-full overflow-hidden">
+            <div class="flex transition-all ease-in-out duration-500" style="width:${producto.imagenes.length * 100}%" id="slider-${index}">
+              ${producto.imagenes.map(img => `<img src="${img}" class="w-full object-cover">`).join('')}
+            </div>
+            <div class="flex justify-center mt-2 gap-2">
+              ${producto.imagenes.map((_, i) => `<button onclick="moverSlider(${index}, ${i})" class="w-2 h-2 rounded-full bg-gray-400"></button>`).join('')}
+            </div>
+          </div>
+        ` : '';
 
         card.innerHTML = `
-          <button onclick="toggleDetalle(${index})" class="text-xl font-bold mb-2 text-left w-full hover:underline">${producto.nombre}</button>
-          <div class="text-sm">
-            <p class="mb-1">Sexo: ${producto.sexo}</p>
-            <p class="mb-1">Sección: ${producto.seccion}</p>
-            <div id="detalle-${index}" class="hidden">
-              ${coloresHtml}
-            </div>
-            <a target="_blank" href="https://wa.me/51986475803?text=Hola, estoy interesada en ${encodeURIComponent(producto.nombre)}" class="inline-block mt-3 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Consultar por WhatsApp</a>
-          </div>
+          ${sliderHtml}
+          <h2 class="text-lg font-bold mt-2">${producto.nombre}</h2>
+          <p class="text-sm">Sexo: ${producto.sexo}</p>
+          <p class="text-sm">Sección: ${producto.seccion}</p>
+          <a target="_blank" href="https://wa.me/51986475803?text=Hola, estoy interesada en ${encodeURIComponent(producto.nombre)}" class="inline-block mt-3 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Consultar por WhatsApp</a>
         `;
         contenedor.appendChild(card);
       });
     }
 
-    function toggleDetalle(indice) {
-  document.querySelectorAll('[id^="detalle-"]').forEach((el, idx) => {
-    if (idx === indice) {
-      el.classList.toggle('hidden');
-    } else {
-      el.classList.add('hidden');
+    function moverSlider(index, imgIndex) {
+      const slider = document.getElementById(`slider-${index}`);
+      if (slider) {
+        slider.style.transform = `translateX(-${imgIndex * 100}%)`;
+      }
     }
-  });
-}
 
     cargarProductos();
   </script>
