@@ -48,9 +48,11 @@
           tallaLetra: col[headers.indexOf("Talla en letras")],
           precio: col[headers.indexOf("Precio de venta")],
           cantidad: col[headers.indexOf("Cantidad comprada")],
+          resto: Number(col[headers.indexOf("Resto")]),
           sexo: col[headers.indexOf("Sexo")],
           seccion: col[headers.indexOf("Sección")]
-        }));
+        }))
+          .filter(p => p.resto > 0);
 
         cargarFiltros();
         mostrarProductos();
