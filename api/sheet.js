@@ -1,5 +1,3 @@
-// api/sheet.js
-
 export default async function handler(req, res) {
   const sheetId = "1xERjhExEY8X1VBxpMSyOAva0d3xIRPTEaQMH2rnvZg8";
   const gid = "2068726383";
@@ -11,7 +9,7 @@ export default async function handler(req, res) {
     res.setHeader('Content-Type', 'text/csv');
     res.status(200).send(data);
   } catch (error) {
-    console.error("Error fetching sheet:", error);
-    res.status(500).json({ error: 'Error fetching sheet data' });
+    console.error("Error al obtener la hoja:", error);
+    res.status(500).json({ error: 'No se pudo obtener la hoja' });
   }
 }
