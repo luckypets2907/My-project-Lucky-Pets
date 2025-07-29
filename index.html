@@ -41,27 +41,41 @@
         const headers = filas[0].map(h => h.replace(/^"|"$/g, '').trim());
         const body = filas.slice(1);
 
-        productosData = body.map(col => {
-          const get = (campo) => col[headers.indexOf(campo)]?.trim() || "";
-          const restoCrudo = get("Resto").replace(/[^0-9.,-]/g, '').replace(',', '.');
-          const resto = parseFloat(restoCrudo);
-          return {
-            nombre: get("Producto"),
-            color: get("Color"),
-            tallaNum: get("Talla en número"),
-            tallaLetra: get("Talla en letras"),
-            precio: get("PV_Minorista"),
-            cantidad: get("Cantidad comprada"),
-            resto: isNaN(resto) ? 0 : resto,
-            sexo: get("Sexo"),
-            seccion: get("Colección"),
-            imagenes: [
-              get("Imagen 1"),
-              get("Imagen 2"),
-              get("Imagen 3")
-            ].filter(Boolean)
-          };
-        }).filter(p => p.resto > 0); // ← esto es lo único que cambiamos
+        const tempData = body.map(col => ({
+          nombre: col[headers.indexOf("Producto")],
+          color: col[headers.indexOf("Color")],
+          tallaNum: col[headers.indexOf("Talla en número")],
+          tallaLetra: col[headers.indexOf("Talla en letras")],
+          precio: col[headers.indexOf("PV_Minorista")],
+          cantidad: col[headers.indexOf("Cantidad comprada")],
+          resto: parseFloat(col[headers.indexOf("Resto")]) || 0,
+          sexo: col[headers.indexOf("Sexo")],
+          seccion: col[headers.indexOf("Colección")],
+          imagenes: [
+            col[headers.indexOf("Imagen 1")],
+            col[headers.indexOf("Imagen 2")],
+            col[headers.indexOf("Imagen 3")]
+          ].filter(Boolean)
+        })).filter(p => p.resto > 0); // Filtra bien solo los productos con stock
+
+        // Agrupa por nombre de producto
+        const agrupado = {};
+        tempData.forEach(p => {
+          if (!agrupado[p.nombre]) {
+            agrupado[p.nombre] = {
+              ...p,
+              variantes: []
+            };
+          }
+          agrupado[p.nombre].variantes.push({
+            tallaNum: p.tallaNum,
+            tallaLetra: p.tallaLetra,
+            precio: p.precio,
+            resto: p.resto
+          });
+        });
+
+        productosData = Object.values(agrupado);
 
         cargarFiltros();
         mostrarProductos();
@@ -78,7 +92,7 @@
 
       const sexos = [...new Set(productosData.map(p => p.sexo).filter(Boolean))];
       const secciones = [...new Set(productosData.map(p => p.seccion).filter(Boolean))];
-      const tallas = [...new Set(productosData.map(p => p.tallaLetra).filter(Boolean))];
+      const tallas = [...new Set(productosData.flatMap(p => p.variantes.map(v => v.tallaLetra)).filter(Boolean))];
 
       sexos.forEach(s => {
         const option = document.createElement('option');
@@ -117,12 +131,16 @@
       const filtrados = productosData.filter(p =>
         (!filtroSexo || p.sexo === filtroSexo) &&
         (!filtroSeccion || p.seccion === filtroSeccion) &&
-        (!filtroTalla || p.tallaLetra === filtroTalla)
+        (!filtroTalla || p.variantes.some(v => v.tallaLetra === filtroTalla))
       );
 
       filtrados.forEach((producto, index) => {
         const card = document.createElement('div');
-        card.className = "bg-white rounded shadow p-4";
+        card.className = "bg-white rounded shadow p-4 cursor-pointer";
+        card.onclick = () => {
+          const detalles = document.getElementById(`detalles-${index}`);
+          detalles.classList.toggle('hidden');
+        };
 
         const sliderHtml = producto.imagenes.length > 0 ? `
           <div class="relative w-full overflow-hidden">
@@ -130,16 +148,38 @@
               ${producto.imagenes.map(img => `<img src="${img}" class="w-full object-cover">`).join('')}
             </div>
             <div class="flex justify-center mt-2 gap-2">
-              ${producto.imagenes.map((_, i) => `<button onclick="moverSlider(${index}, ${i})" class="w-2 h-2 rounded-full bg-gray-400"></button>`).join('')}
+              ${producto.imagenes.map((_, i) => `<button onclick="event.stopPropagation(); moverSlider(${index}, ${i})" class="w-2 h-2 rounded-full bg-gray-400"></button>`).join('')}
             </div>
           </div>
         ` : '';
+
+        const variantesHtml = producto.variantes.map(v => `
+          <tr>
+            <td class="border px-2 py-1">${v.tallaLetra || ''}</td>
+            <td class="border px-2 py-1">${v.tallaNum || ''}</td>
+            <td class="border px-2 py-1">S/ ${v.precio}</td>
+            <td class="border px-2 py-1">${v.resto}</td>
+          </tr>
+        `).join('');
 
         card.innerHTML = `
           ${sliderHtml}
           <h2 class="text-lg font-bold mt-2">${producto.nombre}</h2>
           <p class="text-sm">Sexo: ${producto.sexo}</p>
           <p class="text-sm">Sección: ${producto.seccion}</p>
+          <div id="detalles-${index}" class="hidden mt-2">
+            <table class="w-full text-sm border mt-2">
+              <thead>
+                <tr class="bg-gray-200">
+                  <th class="border px-2 py-1">Talla Letra</th>
+                  <th class="border px-2 py-1">Talla Número</th>
+                  <th class="border px-2 py-1">Precio</th>
+                  <th class="border px-2 py-1">Stock</th>
+                </tr>
+              </thead>
+              <tbody>${variantesHtml}</tbody>
+            </table>
+          </div>
           <a target="_blank" href="https://wa.me/51986475803?text=Hola, estoy interesada en ${encodeURIComponent(producto.nombre)}" class="inline-block mt-3 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Consultar por WhatsApp</a>
         `;
         contenedor.appendChild(card);
