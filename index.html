@@ -46,11 +46,11 @@
           color: col[headers.indexOf("Color")],
           tallaNum: col[headers.indexOf("Talla en número")],
           tallaLetra: col[headers.indexOf("Talla en letras")],
-          precio: col[headers.indexOf("Precio de venta")],
+          precio: col[headers.indexOf("PV_Minorista")],
           cantidad: col[headers.indexOf("Cantidad comprada")],
           resto: Number(col[headers.indexOf("Resto")]),
           sexo: col[headers.indexOf("Sexo")],
-          seccion: col[headers.indexOf("Sección")]
+          seccion: col[headers.indexOf("Colección")]
         }))
           .filter(p => p.resto > 0);
 
