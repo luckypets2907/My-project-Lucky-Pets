@@ -41,22 +41,31 @@
         const headers = filas[0].map(h => h.replace(/^"|"$/g, '').trim());
         const body = filas.slice(1);
 
+        const getIndex = (nombre) => headers.indexOf(nombre);
+
+        const clean = (v) => (v ?? '').toString().replace(/\u00A0/g, ' ').trim();
+        const toNum = (v) => {
+          const s = clean(v).replace(',', '.').replace(/[^\d.-]/g, '');
+          const n = parseFloat(s);
+          return Number.isFinite(n) ? n : 0;
+        };
+
         productosData = body.map(col => ({
-          nombre: col[headers.indexOf("Producto")],
-          color: col[headers.indexOf("Color")],
-          tallaNum: col[headers.indexOf("Talla en número")],
-          tallaLetra: col[headers.indexOf("Talla en letras")],
-          precio: col[headers.indexOf("PV_Minorista")],
-          cantidad: col[headers.indexOf("Cantidad comprada")],
-          resto: Number(col[headers.indexOf("Resto")]),
-          sexo: col[headers.indexOf("Sexo")],
-          seccion: col[headers.indexOf("Colección")],
+          nombre: clean(col[getIndex("Producto")]),
+          color: clean(col[getIndex("Color")]),
+          tallaNum: clean(col[getIndex("Talla en número")]),
+          tallaLetra: clean(col[getIndex("Talla en letras")]),
+          precio: clean(col[getIndex("PV_Minorista")]),
+          cantidad: clean(col[getIndex("Cantidad comprada")]),
+          resto: toNum(col[getIndex("Resto")]),
+          sexo: clean(col[getIndex("Sexo")]),
+          seccion: clean(col[getIndex("Colección")]),
           imagenes: [
-            col[headers.indexOf("Imagen 1")],
-            col[headers.indexOf("Imagen 2")],
-            col[headers.indexOf("Imagen 3")]
+            clean(col[getIndex("Imagen 1")]),
+            clean(col[getIndex("Imagen 2")]),
+            clean(col[getIndex("Imagen 3")])
           ].filter(Boolean)
-        })).filter(p => p.resto > 0);
+        })).filter(p => p.resto > 0); // ✅ filtro corregido
 
         cargarFiltros();
         mostrarProductos();
@@ -119,32 +128,32 @@
         const card = document.createElement('div');
         card.className = "bg-white rounded shadow p-4";
 
-        const sliderHtml = producto.imagenes.length > 0 ? 
+        const sliderHtml = producto.imagenes.length > 0 ? `
           <div class="relative w-full overflow-hidden">
             <div class="flex transition-all ease-in-out duration-500" style="width:${producto.imagenes.length * 100}%" id="slider-${index}">
-              ${producto.imagenes.map(img => <img src="${img}" class="w-full object-cover">).join('')}
+              ${producto.imagenes.map(img => `<img src="${img}" class="w-full object-cover">`).join('')}
             </div>
             <div class="flex justify-center mt-2 gap-2">
-              ${producto.imagenes.map((_, i) => <button onclick="moverSlider(${index}, ${i})" class="w-2 h-2 rounded-full bg-gray-400"></button>).join('')}
+              ${producto.imagenes.map((_, i) => `<button onclick="moverSlider(${index}, ${i})" class="w-2 h-2 rounded-full bg-gray-400"></button>`).join('')}
             </div>
           </div>
-         : '';
+        ` : '';
 
-        card.innerHTML = 
+        card.innerHTML = `
           ${sliderHtml}
           <h2 class="text-lg font-bold mt-2">${producto.nombre}</h2>
           <p class="text-sm">Sexo: ${producto.sexo}</p>
           <p class="text-sm">Sección: ${producto.seccion}</p>
           <a target="_blank" href="https://wa.me/51986475803?text=Hola, estoy interesada en ${encodeURIComponent(producto.nombre)}" class="inline-block mt-3 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Consultar por WhatsApp</a>
-        ;
+        `;
         contenedor.appendChild(card);
       });
     }
 
     function moverSlider(index, imgIndex) {
-      const slider = document.getElementById(slider-${index});
+      const slider = document.getElementById(`slider-${index}`);
       if (slider) {
-        slider.style.transform = translateX(-${imgIndex * 100}%);
+        slider.style.transform = `translateX(-${imgIndex * 100}%)`;
       }
     }
 
