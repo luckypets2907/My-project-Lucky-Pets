@@ -48,7 +48,7 @@
           tallaLetra: col[headers.indexOf("Talla en letras")],
           precio: col[headers.indexOf("PV_Minorista")],
           cantidad: col[headers.indexOf("Cantidad comprada")],
-          resto: Number(col[headers.indexOf("Resto")]),
+          resto: parseFloat(col[headers.indexOf("Resto")].replace(",", ".").trim()) || 0,
           sexo: col[headers.indexOf("Sexo")],
           seccion: col[headers.indexOf("Colección")],
           imagenes: [
