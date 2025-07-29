@@ -1,14 +1,17 @@
-export default async function handler(req, res) {
-  const sheetId = '1vShCH9HDtvW9cXzRtCnBsW77XcgnHuq9yQ83lKOgRQUMrXEC20-KH990PXe6gLWNjE6h6hqMXTHSKso';
-  const gid = '1385147949';
+// api/sheet.js
 
-  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
+export default async function handler(req, res) {
+  const sheetId = "1xERjhExEY8X1VBxpMSyOAva0d3xIRPTEaQMH2rnvZg8";
+  const gid = "2068726383";
+  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
 
   try {
     const response = await fetch(url);
-    const csv = await response.text();
-    res.status(200).send(csv);
+    const data = await response.text();
+    res.setHeader('Content-Type', 'text/csv');
+    res.status(200).send(data);
   } catch (error) {
-    res.status(500).json({ error: 'Error al obtener los datos del Sheet' });
+    console.error("Error fetching sheet:", error);
+    res.status(500).json({ error: 'Error fetching sheet data' });
   }
 }
