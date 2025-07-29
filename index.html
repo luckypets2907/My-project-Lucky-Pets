@@ -41,31 +41,27 @@
         const headers = filas[0].map(h => h.replace(/^"|"$/g, '').trim());
         const body = filas.slice(1);
 
-        const getIndex = (nombre) => headers.indexOf(nombre);
-
-        const clean = (v) => (v ?? '').toString().replace(/\u00A0/g, ' ').trim();
-        const toNum = (v) => {
-          const s = clean(v).replace(',', '.').replace(/[^\d.-]/g, '');
-          const n = parseFloat(s);
-          return Number.isFinite(n) ? n : 0;
-        };
-
-        productosData = body.map(col => ({
-          nombre: clean(col[getIndex("Producto")]),
-          color: clean(col[getIndex("Color")]),
-          tallaNum: clean(col[getIndex("Talla en número")]),
-          tallaLetra: clean(col[getIndex("Talla en letras")]),
-          precio: clean(col[getIndex("PV_Minorista")]),
-          cantidad: clean(col[getIndex("Cantidad comprada")]),
-          resto: toNum(col[getIndex("Resto")]),
-          sexo: clean(col[getIndex("Sexo")]),
-          seccion: clean(col[getIndex("Colección")]),
-          imagenes: [
-            clean(col[getIndex("Imagen 1")]),
-            clean(col[getIndex("Imagen 2")]),
-            clean(col[getIndex("Imagen 3")])
-          ].filter(Boolean)
-        })).filter(p => p.resto > 0); // ✅ filtro corregido
+        productosData = body.map(col => {
+          const get = (campo) => col[headers.indexOf(campo)]?.trim() || "";
+          const restoCrudo = get("Resto").replace(/[^0-9.,-]/g, '').replace(',', '.');
+          const resto = parseFloat(restoCrudo);
+          return {
+            nombre: get("Producto"),
+            color: get("Color"),
+            tallaNum: get("Talla en número"),
+            tallaLetra: get("Talla en letras"),
+            precio: get("PV_Minorista"),
+            cantidad: get("Cantidad comprada"),
+            resto: isNaN(resto) ? 0 : resto,
+            sexo: get("Sexo"),
+            seccion: get("Colección"),
+            imagenes: [
+              get("Imagen 1"),
+              get("Imagen 2"),
+              get("Imagen 3")
+            ].filter(Boolean)
+          };
+        }).filter(p => p.resto > 0); // ← esto es lo único que cambiamos
 
         cargarFiltros();
         mostrarProductos();
