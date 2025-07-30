@@ -2,124 +2,216 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Catálogo con Slider</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catálogo de Productos</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .slide-img {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+    .slide-img.active {
+      opacity: 1;
+    }
+  </style>
 </head>
 <body class="bg-gray-100 font-sans">
+  <div class="max-w-6xl mx-auto p-4">
+    <div class="flex items-center justify-start gap-4 mb-8 px-4">
+      <img src="https://i.imgur.com/beTXeou.png" alt="Logo" class="h-20 w-auto">
+      <h1 class="text-3xl font-bold">Catálogo de Productos</h1>
+    </div>
 
-<div class="max-w-6xl mx-auto p-4">
-  <h1 class="text-3xl font-bold mb-6">Catálogo de Productos</h1>
-  <div id="productos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-</div>
+    <div class="flex flex-col sm:flex-row gap-4 sm:justify-end justify-start mb-6 px-4">
+      <select id="filtroSexo" class="p-2 border rounded">
+        <option value="">Todos los sexos</option>
+      </select>
+      <select id="filtroSeccion" class="p-2 border rounded">
+        <option value="">Todas las secciones</option>
+      </select>
+      <select id="filtroTalla" class="p-2 border rounded">
+        <option value="">Todas las tallas</option>
+      </select>
+    </div>
 
-<script>
-const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKlAxnSIcEhnhq6R4o7gtrqS8AgQ98XD5RQmu_sC5XaFmb5T_Vi8X9qramRm-6ndphgRzcMPUOy1fV/pub?gid=964983527&single=true&output=csv";
+    <div id="productos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+  </div>
 
-async function cargarProductos() {
-  const res = await fetch(sheetUrl);
-  const data = await res.text();
-  const filas = data.trim().split('\n').map(f => f.split(','));
-  const headers = filas[0];
-  const body = filas.slice(1);
+  <script>
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKlAxnSIcEhnhq6R4o7gtrqS8AgQ98XD5RQmu_sC5XaFmb5T_Vi8X9qramRm-6ndphgRzcMPUOy1fV/pub?gid=964983527&single=true&output=csv";
+    let productosData = [];
 
-  const productos = body.map(row => {
-    const obj = {};
-    headers.forEach((h, i) => obj[h.trim()] = row[i]?.trim());
-    return obj;
-  });
+    async function cargarProductos() {
+      try {
+        const res = await fetch(sheetUrl);
+        const data = await res.text();
+        const filas = data.trim().split('\n').map(f => f.split(','));
+        const headers = filas[0].map(h => h.replace(/^"|"$/g, '').trim());
+        const body = filas.slice(1);
 
-  const agrupados = {};
-  productos.forEach(p => {
-    const key = `${p["Producto"]}-${p["Sexo"]}-${p["Colección"]}`;
-    if (!agrupados[key]) agrupados[key] = { ...p, tallas: [], imagenes: [] };
-    agrupados[key].tallas.push({
-      tallaLetra: p["Talla en letras"],
-      tallaNum: p["Talla en número"],
-      color: p["Color"],
-      precio: p["PV_Minorista"]
-    });
-    agrupados[key].imagenes = [p["Imagen 1"], p["Imagen 2"], p["Imagen 3"]].filter(Boolean);
-  });
+        productosData = body.map(col => ({
+          nombre: col[headers.indexOf("Producto")],
+          color: col[headers.indexOf("Color")],
+          tallaNum: col[headers.indexOf("Talla en número")],
+          tallaLetra: col[headers.indexOf("Talla en letras")],
+          precio: col[headers.indexOf("PV_Minorista")],
+          cantidad: col[headers.indexOf("Cantidad comprada")],
+          sexo: col[headers.indexOf("Sexo")],
+          seccion: col[headers.indexOf("Colección")],
+          imagenes: [
+            col[headers.indexOf("Imagen 1")],
+            col[headers.indexOf("Imagen 2")],
+            col[headers.indexOf("Imagen 3")]
+          ].filter(url => url && url.startsWith("http"))
+        }));
 
-  mostrarProductos(Object.values(agrupados));
-}
+        cargarFiltros();
+        mostrarProductos();
+      } catch (error) {
+        console.error("Error al cargar productos:", error);
+        document.getElementById('productos').innerHTML = '<p class="text-center text-red-600">Error al cargar productos. Verifica el enlace del Sheet.</p>';
+      }
+    }
 
-function mostrarProductos(productos) {
-  const contenedor = document.getElementById('productos');
-  contenedor.innerHTML = '';
+    function cargarFiltros() {
+      const filtroSexo = document.getElementById('filtroSexo');
+      const filtroSeccion = document.getElementById('filtroSeccion');
+      const filtroTalla = document.getElementById('filtroTalla');
 
-  productos.forEach((p, i) => {
-    const imagenesHtml = p.imagenes.map((url, idx) => `
-      <img src="${url}" class="w-full h-60 object-contain ${idx === 0 ? '' : 'hidden'}" data-index="${idx}">
-    `).join('');
+      const sexos = [...new Set(productosData.map(p => p.sexo).filter(Boolean))];
+      const secciones = [...new Set(productosData.map(p => p.seccion).filter(Boolean))];
+      const tallas = [...new Set(productosData.map(p => p.tallaLetra).filter(Boolean))];
 
-    const dots = p.imagenes.map((_, idx) => `
-      <button class="h-2 w-2 rounded-full ${idx === 0 ? 'bg-gray-800' : 'bg-gray-400'}" onclick="mostrarSlide(${i}, ${idx})"></button>
-    `).join('');
+      sexos.forEach(s => {
+        const option = document.createElement('option');
+        option.value = s;
+        option.textContent = s;
+        filtroSexo.appendChild(option);
+      });
 
-    const tallasHTML = p.tallas.map(t => `
-      <tr>
-        <td class='border px-2 py-1'>${t.tallaLetra} (${t.tallaNum})</td>
-        <td class='border px-2 py-1'>${t.color}</td>
-        <td class='border px-2 py-1'>S/ ${t.precio}</td>
-      </tr>`).join('');
+      secciones.forEach(s => {
+        const option = document.createElement('option');
+        option.value = s;
+        option.textContent = s;
+        filtroSeccion.appendChild(option);
+      });
 
-    const card = document.createElement('div');
-    card.className = "bg-white rounded shadow p-4";
-    card.innerHTML = `
-      <div class="relative">
-        <div id="slider-${i}" class="w-full overflow-hidden rounded mb-3">
-          ${imagenesHtml}
-        </div>
-        <div class="flex justify-center gap-2 mb-2">${dots}</div>
-      </div>
-      <button onclick="toggleDetalle(${i})" class="text-xl font-bold mb-2 text-left w-full hover:underline">${p["Producto"]}</button>
-      <div class="text-sm">
-        <p class="mb-1">Sexo: ${p["Sexo"]}</p>
-        <p class="mb-1">Sección: ${p["Colección"]}</p>
-        <div id="detalle-${i}" class="hidden">
-          <table class='w-full text-xs mt-2'>
+      tallas.forEach(t => {
+        const option = document.createElement('option');
+        option.value = t;
+        option.textContent = t;
+        filtroTalla.appendChild(option);
+      });
+
+      filtroSexo.addEventListener('change', mostrarProductos);
+      filtroSeccion.addEventListener('change', mostrarProductos);
+      filtroTalla.addEventListener('change', mostrarProductos);
+    }
+
+    function mostrarProductos() {
+      const contenedor = document.getElementById('productos');
+      contenedor.innerHTML = '';
+
+      const filtroSexo = document.getElementById('filtroSexo').value;
+      const filtroSeccion = document.getElementById('filtroSeccion').value;
+      const filtroTalla = document.getElementById('filtroTalla').value;
+
+      const filtrados = productosData.filter(p =>
+        (!filtroSexo || p.sexo === filtroSexo) &&
+        (!filtroSeccion || p.seccion === filtroSeccion) &&
+        (!filtroTalla || p.tallaLetra === filtroTalla)
+      );
+
+      const agrupados = {};
+      filtrados.forEach(p => {
+        const key = `${p.nombre}-${p.sexo}-${p.seccion}`;
+        if (!agrupados[key]) agrupados[key] = {
+          nombre: p.nombre, sexo: p.sexo, seccion: p.seccion, colores: {}, imagenes: p.imagenes
+        };
+        if (!agrupados[key].colores[p.color]) agrupados[key].colores[p.color] = [];
+        agrupados[key].colores[p.color].push({ tallaLetra: p.tallaLetra, tallaNum: p.tallaNum, precio: p.precio });
+      });
+
+      Object.values(agrupados).forEach((producto, index) => {
+        const card = document.createElement('div');
+        card.className = "bg-white rounded shadow p-4";
+
+        const slideHtml = producto.imagenes.length > 0 ? `
+          <div class="relative w-full h-48 overflow-hidden mb-2" data-index="${index}">
+            ${producto.imagenes.map((url, i) => `
+              <img src="${url}" class="slide-img ${i === 0 ? 'active' : ''}" />
+            `).join('')}
+          </div>` : '';
+
+        const coloresHtml = (() => {
+          const mapaTallas = {};
+          Object.entries(producto.colores).forEach(([color, tallas]) => {
+            tallas.forEach(t => {
+              const key = `${t.tallaLetra} (${t.tallaNum}) - S/ ${t.precio}`;
+              if (!mapaTallas[key]) mapaTallas[key] = new Set();
+              mapaTallas[key].add(color);
+            });
+          });
+
+          const rows = Object.entries(mapaTallas).map(([tallaPrecio, coloresSet]) => {
+            const [talla, precio] = tallaPrecio.split(' - ');
+            const colores = Array.from(coloresSet).join(', ');
+            return `<tr><td class='border px-2 py-1'>${talla}</td><td class='border px-2 py-1'>${colores}</td><td class='border px-2 py-1'>${precio}</td></tr>`;
+          }).join('');
+
+          return `<table class='w-full text-xs mt-2'>
             <thead>
               <tr class='bg-gray-100'>
                 <th class='text-left px-2 py-1 border'>Talla</th>
-                <th class='text-left px-2 py-1 border'>Color</th>
+                <th class='text-left px-2 py-1 border'>Colores disponibles</th>
                 <th class='text-left px-2 py-1 border'>Precio</th>
               </tr>
             </thead>
-            <tbody>${tallasHTML}</tbody>
-          </table>
-        </div>
-        <a target="_blank" href="https://wa.me/51986475803?text=Hola, estoy interesada en ${encodeURIComponent(p["Producto"])}"
-           class="inline-block mt-3 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-          Consultar por WhatsApp
-        </a>
-      </div>
-    `;
-    contenedor.appendChild(card);
-  });
-}
+            <tbody>${rows}</tbody>
+          </table>`;
+        })();
 
-function mostrarSlide(prodIndex, imgIndex) {
-  const slider = document.querySelector(`#slider-${prodIndex}`);
-  const imgs = slider.querySelectorAll('img');
-  imgs.forEach((img, idx) => {
-    img.classList.toggle('hidden', idx !== imgIndex);
-  });
+        card.innerHTML = `
+          ${slideHtml}
+          <button onclick="toggleDetalle(${index})" class="text-xl font-bold mb-2 text-left w-full hover:underline">${producto.nombre}</button>
+          <div class="text-sm">
+            <p class="mb-1">Sexo: ${producto.sexo}</p>
+            <p class="mb-1">Sección: ${producto.seccion}</p>
+            <div id="detalle-${index}" class="hidden">${coloresHtml}</div>
+            <a target="_blank" href="https://wa.me/51986475803?text=Hola, estoy interesada en ${encodeURIComponent(producto.nombre)}" class="inline-block mt-3 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Consultar por WhatsApp</a>
+          </div>`;
+        contenedor.appendChild(card);
+      });
 
-  const dots = slider.parentElement.querySelectorAll('button');
-  dots.forEach((dot, idx) => {
-    dot.className = `h-2 w-2 rounded-full ${idx === imgIndex ? 'bg-gray-800' : 'bg-gray-400'}`;
-  });
-}
+      iniciarSlides();
+    }
 
-function toggleDetalle(indice) {
-  document.querySelectorAll('[id^="detalle-"]').forEach((el, idx) => {
-    el.classList.toggle('hidden', idx !== indice || el.classList.contains('hidden'));
-  });
-}
+    function toggleDetalle(indice) {
+      document.querySelectorAll('[id^="detalle-"]').forEach((el, idx) => {
+        if (idx === indice) {
+          el.classList.toggle('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      });
+    }
 
-cargarProductos();
-</script>
+    function iniciarSlides() {
+      document.querySelectorAll('[data-index]').forEach(div => {
+        const slides = div.querySelectorAll('.slide-img');
+        let i = 0;
+        setInterval(() => {
+          slides.forEach((img, j) => img.classList.toggle('active', j === i));
+          i = (i + 1) % slides.length;
+        }, 3000);
+      });
+    }
 
+    cargarProductos();
+  </script>
 </body>
 </html>
