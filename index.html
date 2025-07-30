@@ -9,7 +9,7 @@
 <body class="bg-gray-100 font-sans">
   <div class="max-w-6xl mx-auto p-4">
     <div class="flex items-center justify-start gap-4 mb-8 px-4">
-      <img src="https://i.imgur.com/beTXeou.png" alt="Logo" class="h-20 w-auto">
+      <img src="https://i.imgur.com/beTXeou.png" alt="Logo" class="h-20 w-auto" />
       <h1 class="text-3xl font-bold">Catálogo de Productos</h1>
     </div>
 
@@ -30,7 +30,7 @@
 
   <script>
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKlAxnSIcEhnhq6R4o7gtrqS8AgQ98XD5RQmu_sC5XaFmb5T_Vi8X9qramRm-6ndphgRzcMPUOy1fV/pub?gid=2068726383&single=true&output=csv";
-    let productosOriginales = [];
+    let productosData = [];
 
     async function cargarProductos() {
       try {
@@ -40,11 +40,21 @@
         const headers = filas[0].map(h => h.replace(/^"|"$/g, '').trim());
         const body = filas.slice(1);
 
-        productosOriginales = body.map(fila => {
-          const obj = {};
-          headers.forEach((h, i) => obj[h] = fila[i]);
-          return obj;
-        }).filter(p => Number(p["Resto"]) > 0);
+        productosData = body.map(col => ({
+          nombre: col[headers.indexOf("Producto")],
+          color: col[headers.indexOf("Color")],
+          tallaNum: col[headers.indexOf("Talla en número")],
+          tallaLetra: col[headers.indexOf("Talla en letras")],
+          precio: col[headers.indexOf("PV_Minorista")],
+          resto: Number(col[headers.indexOf("Resto")]),
+          sexo: col[headers.indexOf("Sexo")],
+          seccion: col[headers.indexOf("Colección")],
+          imagenes: [
+            col[headers.indexOf("Imagen 1")],
+            col[headers.indexOf("Imagen 2")],
+            col[headers.indexOf("Imagen 3")]
+          ].filter(Boolean)
+        })).filter(p => p.resto > 0);
 
         cargarFiltros();
         mostrarProductos();
@@ -59,9 +69,9 @@
       const filtroSeccion = document.getElementById('filtroSeccion');
       const filtroTalla = document.getElementById('filtroTalla');
 
-      const sexos = [...new Set(productosOriginales.map(p => p["Sexo"]).filter(Boolean))];
-      const secciones = [...new Set(productosOriginales.map(p => p["Colección"]).filter(Boolean))];
-      const tallas = [...new Set(productosOriginales.map(p => p["Talla en letras"]).filter(Boolean))];
+      const sexos = [...new Set(productosData.map(p => p.sexo).filter(Boolean))];
+      const secciones = [...new Set(productosData.map(p => p.seccion).filter(Boolean))];
+      const tallas = [...new Set(productosData.map(p => p.tallaLetra).filter(Boolean))];
 
       sexos.forEach(s => {
         const option = document.createElement('option');
@@ -97,55 +107,72 @@
       const filtroSeccion = document.getElementById('filtroSeccion').value;
       const filtroTalla = document.getElementById('filtroTalla').value;
 
-      // Agrupar productos por nombre + color + sexo + colección
+      const filtrados = productosData.filter(p =>
+        (!filtroSexo || p.sexo === filtroSexo) &&
+        (!filtroSeccion || p.seccion === filtroSeccion) &&
+        (!filtroTalla || p.tallaLetra === filtroTalla)
+      );
+
       const agrupados = {};
-      productosOriginales.forEach(p => {
-        if (
-          (!filtroSexo || p["Sexo"] === filtroSexo) &&
-          (!filtroSeccion || p["Colección"] === filtroSeccion) &&
-          (!filtroTalla || p["Talla en letras"] === filtroTalla)
-        ) {
-          const key = `${p["Producto"]}||${p["Color"]}||${p["Sexo"]}||${p["Colección"]}`;
-          if (!agrupados[key]) agrupados[key] = [];
-          agrupados[key].push(p);
+      filtrados.forEach(p => {
+        const key = `${p.nombre}_${p.color}_${p.sexo}_${p.seccion}`;
+        if (!agrupados[key]) {
+          agrupados[key] = { ...p, variantes: [] };
         }
+        agrupados[key].variantes.push({
+          tallaLetra: p.tallaLetra,
+          tallaNum: p.tallaNum,
+          precio: p.precio,
+          resto: p.resto
+        });
       });
 
-      Object.entries(agrupados).forEach(([key, variantes]) => {
-        const [producto, color, sexo, seccion] = key.split('||');
+      Object.values(agrupados).forEach((producto, index) => {
         const card = document.createElement('div');
         card.className = "bg-white rounded shadow p-4";
 
-        let tabla = `
-          <table class="w-full mt-2 text-sm border">
-            <thead><tr>
-              <th class="border px-2">Talla Letra</th>
-              <th class="border px-2">Talla Número</th>
-              <th class="border px-2">Precio</th>
-              <th class="border px-2">Stock</th>
-            </tr></thead>
-            <tbody>
-              ${variantes.map(v => `
-                <tr>
-                  <td class="border px-2 text-center">${v["Talla en letras"]}</td>
-                  <td class="border px-2 text-center">${v["Talla en número"]}</td>
-                  <td class="border px-2 text-center">S/ ${v["PV_Minorista"]}</td>
-                  <td class="border px-2 text-center">${v["Resto"]}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        `;
+        const sliderHtml = producto.imagenes.length > 0 ? `
+          <div class="relative w-full overflow-hidden">
+            <div class="flex transition-all ease-in-out duration-500" style="width:${producto.imagenes.length * 100}%" id="slider-${index}">
+              ${producto.imagenes.map(img => `<img src="${img}" class="w-full object-cover">`).join('')}
+            </div>
+            <div class="flex justify-center mt-2 gap-2">
+              ${producto.imagenes.map((_, i) => `<button onclick="moverSlider(${index}, ${i})" class="w-2 h-2 rounded-full bg-gray-400"></button>`).join('')}
+            </div>
+          </div>
+        ` : '';
+
+        const tablaTallas = producto.variantes.map(v =>
+          `<tr class="text-sm text-center border-t">
+            <td>${v.tallaLetra}</td>
+            <td>${v.tallaNum}</td>
+            <td>S/ ${v.precio}</td>
+            <td>${v.resto}</td>
+          </tr>`
+        ).join('');
 
         card.innerHTML = `
-          <h2 class="text-lg font-bold">${producto}</h2>
-          <p class="text-sm">Sexo: ${sexo}</p>
-          <p class="text-sm">Sección: ${seccion}</p>
-          ${tabla}
-          <a target="_blank" href="https://wa.me/51986475803?text=Hola, estoy interesada en ${encodeURIComponent(producto)}" class="inline-block mt-3 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Consultar por WhatsApp</a>
+          ${sliderHtml}
+          <h2 class="text-lg font-bold mt-2">${producto.nombre}</h2>
+          <p class="text-sm">Sexo: ${producto.sexo}</p>
+          <p class="text-sm">Sección: ${producto.seccion}</p>
+          <table class="mt-2 w-full border text-xs text-center">
+            <thead class="bg-gray-100 font-semibold">
+              <tr><th>Talla Letra</th><th>Talla Número</th><th>Precio</th><th>Stock</th></tr>
+            </thead>
+            <tbody>${tablaTallas}</tbody>
+          </table>
+          <a target="_blank" href="https://wa.me/51986475803?text=Hola, estoy interesada en ${encodeURIComponent(producto.nombre)}" class="inline-block mt-3 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Consultar por WhatsApp</a>
         `;
         contenedor.appendChild(card);
       });
+    }
+
+    function moverSlider(index, imgIndex) {
+      const slider = document.getElementById(`slider-${index}`);
+      if (slider) {
+        slider.style.transform = `translateX(-${imgIndex * 100}%)`;
+      }
     }
 
     cargarProductos();
