@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Catálogo de Productos</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -41,11 +41,11 @@
         const headers = filas[0].map(h => h.replace(/^"|"$/g, '').trim());
         const body = filas.slice(1);
 
-        productosData = body.map(col => ({
+        const crudos = body.map(col => ({
           nombre: col[headers.indexOf("Producto")],
           color: col[headers.indexOf("Color")],
           tallaNum: col[headers.indexOf("Talla en número")],
-          tallaLetra: col[headers.indexOf("Talla en letras")],
+          tallaLetra: col[headers.indexOf("Talla en letra")],
           precio: col[headers.indexOf("PV_Minorista")],
           resto: Number(col[headers.indexOf("Resto")]),
           sexo: col[headers.indexOf("Sexo")],
@@ -57,7 +57,9 @@
           ].filter(Boolean)
         }));
 
-        cargarFiltros();
+        productosData = agruparPorProducto(crudos);
+
+        cargarFiltros(crudos);
         mostrarProductos();
       } catch (error) {
         console.error("Error al cargar productos:", error);
@@ -65,14 +67,36 @@
       }
     }
 
-    function cargarFiltros() {
+    function agruparPorProducto(data) {
+      const agrupados = {};
+      data.forEach(p => {
+        const key = `${p.nombre}||${p.sexo}||${p.seccion}||${p.imagenes.join('|')}`;
+        if (!agrupados[key]) {
+          agrupados[key] = {
+            nombre: p.nombre,
+            sexo: p.sexo,
+            seccion: p.seccion,
+            imagenes: p.imagenes,
+            variantes: []
+          };
+        }
+        agrupados[key].variantes.push({
+          tallaLetra: p.tallaLetra,
+          tallaNum: p.tallaNum,
+          stock: p.resto
+        });
+      });
+      return Object.values(agrupados);
+    }
+
+    function cargarFiltros(data) {
       const filtroSexo = document.getElementById('filtroSexo');
       const filtroSeccion = document.getElementById('filtroSeccion');
       const filtroTalla = document.getElementById('filtroTalla');
 
-      const sexos = [...new Set(productosData.map(p => p.sexo).filter(Boolean))];
-      const secciones = [...new Set(productosData.map(p => p.seccion).filter(Boolean))];
-      const tallas = [...new Set(productosData.map(p => p.tallaLetra).filter(Boolean))];
+      const sexos = [...new Set(data.map(p => p.sexo).filter(Boolean))];
+      const secciones = [...new Set(data.map(p => p.seccion).filter(Boolean))];
+      const tallas = [...new Set(data.map(p => p.tallaLetra).filter(Boolean))];
 
       sexos.forEach(s => {
         const option = document.createElement('option');
@@ -111,28 +135,10 @@
       const filtrados = productosData.filter(p =>
         (!filtroSexo || p.sexo === filtroSexo) &&
         (!filtroSeccion || p.seccion === filtroSeccion) &&
-        (!filtroTalla || p.tallaLetra === filtroTalla)
+        (!filtroTalla || p.variantes.some(v => v.tallaLetra === filtroTalla))
       );
 
-      const agrupados = {};
-
-      filtrados.forEach(p => {
-        const key = `${p.nombre}|${p.color}|${p.sexo}|${p.seccion}`;
-        if (!agrupados[key]) {
-          agrupados[key] = {
-            ...p,
-            variantes: []
-          };
-        }
-        agrupados[key].variantes.push({
-          tallaLetra: p.tallaLetra,
-          tallaNum: p.tallaNum,
-          precio: p.precio,
-          stock: p.resto
-        });
-      });
-
-      Object.values(agrupados).forEach((producto, index) => {
+      filtrados.forEach((producto, index) => {
         const card = document.createElement('div');
         card.className = "bg-white rounded shadow p-4";
 
@@ -148,12 +154,11 @@
         ` : '';
 
         const tablaTallas = `
-          <table class="w-full text-sm mt-2 border text-center">
+          <table class="table-auto text-sm mt-2 w-full border">
             <thead>
               <tr class="bg-gray-200">
                 <th class="border px-1">Talla Letra</th>
                 <th class="border px-1">Talla Número</th>
-                <th class="border px-1">Precio</th>
                 <th class="border px-1">Stock</th>
               </tr>
             </thead>
@@ -162,7 +167,6 @@
                 `<tr>
                   <td class="border px-1">${v.tallaLetra}</td>
                   <td class="border px-1">${v.tallaNum}</td>
-                  <td class="border px-1">S/ ${v.precio}</td>
                   <td class="border px-1">${v.stock}</td>
                 </tr>`).join('')}
             </tbody>
