@@ -6,15 +6,24 @@
   <title>Catálogo de Productos</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .slide-img {
+    .slider-container {
+      position: relative;
+      width: 100%;
+      height: 200px;
+      overflow: hidden;
+      border-radius: 0.5rem;
+    }
+    .slider-image {
       position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
       opacity: 0;
-      transition: opacity 0.5s;
+      transition: opacity 1s ease-in-out;
     }
-    .slide-img.active {
+    .slider-image.active {
       opacity: 1;
     }
   </style>
@@ -140,12 +149,13 @@
         const card = document.createElement('div');
         card.className = "bg-white rounded shadow p-4";
 
-        const slideHtml = producto.imagenes.length > 0 ? `
-          <div class="relative w-full h-48 overflow-hidden mb-2" data-index="${index}">
+        const sliderHtml = producto.imagenes.length > 0 ? `
+          <div class="slider-container mb-2" id="slider-${index}">
             ${producto.imagenes.map((url, i) => `
-              <img src="${url}" class="slide-img ${i === 0 ? 'active' : ''}" />
+              <img src="${url}" class="slider-image ${i === 0 ? 'active' : ''}" alt="${producto.nombre}">
             `).join('')}
-          </div>` : '';
+          </div>
+        ` : '';
 
         const coloresHtml = (() => {
           const mapaTallas = {};
@@ -176,14 +186,15 @@
         })();
 
         card.innerHTML = `
-          ${slideHtml}
+          ${sliderHtml}
           <button onclick="toggleDetalle(${index})" class="text-xl font-bold mb-2 text-left w-full hover:underline">${producto.nombre}</button>
           <div class="text-sm">
             <p class="mb-1">Sexo: ${producto.sexo}</p>
             <p class="mb-1">Sección: ${producto.seccion}</p>
             <div id="detalle-${index}" class="hidden">${coloresHtml}</div>
             <a target="_blank" href="https://wa.me/51986475803?text=Hola, estoy interesada en ${encodeURIComponent(producto.nombre)}" class="inline-block mt-3 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Consultar por WhatsApp</a>
-          </div>`;
+          </div>
+        `;
         contenedor.appendChild(card);
       });
 
@@ -201,12 +212,12 @@
     }
 
     function iniciarSlides() {
-      document.querySelectorAll('[data-index]').forEach(div => {
-        const slides = div.querySelectorAll('.slide-img');
+      document.querySelectorAll('.slider-container').forEach(container => {
+        const images = container.querySelectorAll('.slider-image');
         let i = 0;
         setInterval(() => {
-          slides.forEach((img, j) => img.classList.toggle('active', j === i));
-          i = (i + 1) % slides.length;
+          images.forEach((img, idx) => img.classList.toggle('active', idx === i));
+          i = (i + 1) % images.length;
         }, 3000);
       });
     }
