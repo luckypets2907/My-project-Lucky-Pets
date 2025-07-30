@@ -38,7 +38,7 @@
         const data = await res.text();
         const filas = data.trim().split('\n').map(f => f.split(','));
 
-        const headers = filas[0].map(h => h.replace(/^\"|\"$/g, '').trim());
+        const headers = filas[0].map(h => h.replace(/^"|"$/g, '').trim());
         const body = filas.slice(1);
 
         productosData = body.map(col => ({
@@ -126,17 +126,6 @@
         const card = document.createElement('div');
         card.className = "bg-white rounded shadow p-4";
 
-        const sliderHtml = producto.imagenes.length > 0 ? `
-          <div class="relative w-full overflow-hidden mb-2">
-            <div class="flex transition-all ease-in-out duration-500" style="width:${producto.imagenes.length * 100}%" id="slider-${index}">
-              ${producto.imagenes.map(img => `<img src="${img}" class="w-full object-cover">`).join('')}
-            </div>
-            <div class="flex justify-center mt-2 gap-2">
-              ${producto.imagenes.map((_, i) => `<button onclick="moverSlider(${index}, ${i})" class="w-2 h-2 rounded-full bg-gray-400"></button>`).join('')}
-            </div>
-          </div>
-        ` : '';
-
         const coloresHtml = (() => {
           const mapaTallas = {};
           Object.entries(producto.colores).forEach(([color, tallas]) => {
@@ -165,6 +154,16 @@
           </table>`;
         })();
 
+        const sliderHtml = producto.imagenes.length > 0 ? `
+          <div class="relative w-full overflow-hidden rounded mb-2">
+            <div class="flex transition-transform duration-300 ease-in-out" id="slider-${index}">
+              ${producto.imagenes.map(img => `<img src="${img}" alt="${producto.nombre}" class="w-full h-48 object-cover flex-shrink-0">`).join('')}
+            </div>
+            <div class="flex justify-center gap-2 mt-1">
+              ${producto.imagenes.map((_, i) => `<button onclick="moverSlide(${index}, ${i})" class="w-2 h-2 rounded-full bg-gray-400 hover:bg-gray-600"></button>`).join('')}
+            </div>
+          </div>` : '';
+
         card.innerHTML = `
           ${sliderHtml}
           <button onclick="toggleDetalle(${index})" class="text-xl font-bold mb-2 text-left w-full hover:underline">${producto.nombre}</button>
@@ -177,8 +176,15 @@
             <a target="_blank" href="https://wa.me/51986475803?text=Hola, estoy interesada en ${encodeURIComponent(producto.nombre)}" class="inline-block mt-3 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Consultar por WhatsApp</a>
           </div>
         `;
+
         contenedor.appendChild(card);
       });
+    }
+
+    function moverSlide(index, slideIndex) {
+      const slider = document.getElementById(`slider-${index}`);
+      const width = slider.offsetWidth;
+      slider.style.transform = `translateX(-${slideIndex * width}px)`;
     }
 
     function toggleDetalle(indice) {
@@ -189,13 +195,6 @@
           el.classList.add('hidden');
         }
       });
-    }
-
-    function moverSlider(index, imgIndex) {
-      const slider = document.getElementById(`slider-${index}`);
-      if (slider) {
-        slider.style.transform = `translateX(-${imgIndex * 100}%)`;
-      }
     }
 
     cargarProductos();
