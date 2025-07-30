@@ -1,4 +1,4 @@
-Te envío mi código para modeficarlo y a hacer que se vean las imágenes como slider: <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -51,8 +51,7 @@ Te envío mi código para modeficarlo y a hacer que se vean las imágenes como s
           resto: Number(col[headers.indexOf("Resto")]),
           sexo: col[headers.indexOf("Sexo")],
           seccion: col[headers.indexOf("Colección")]
-        }))
-          .filter(p => p.resto > 0);
+        }));
 
         cargarFiltros();
         mostrarProductos();
