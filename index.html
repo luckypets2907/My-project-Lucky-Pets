@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+Te envío mi código para modeficarlo y a hacer que se vean las imágenes como slider: <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -37,6 +37,7 @@
         const res = await fetch(sheetUrl);
         const data = await res.text();
         const filas = data.trim().split('\n').map(f => f.split(','));
+
         const headers = filas[0].map(h => h.replace(/^"|"$/g, '').trim());
         const body = filas.slice(1);
 
@@ -44,18 +45,14 @@
           nombre: col[headers.indexOf("Producto")],
           color: col[headers.indexOf("Color")],
           tallaNum: col[headers.indexOf("Talla en número")],
-          tallaLetra: col[headers.indexOf("Talla en letra")],
+          tallaLetra: col[headers.indexOf("Talla en letras")],
           precio: col[headers.indexOf("PV_Minorista")],
           cantidad: col[headers.indexOf("Cantidad comprada")],
           resto: Number(col[headers.indexOf("Resto")]),
           sexo: col[headers.indexOf("Sexo")],
-          seccion: col[headers.indexOf("Colección")],
-          imagenes: [
-            col[headers.indexOf("Imagen 1")],
-            col[headers.indexOf("Imagen 2")],
-            col[headers.indexOf("Imagen 3")]
-          ].filter(Boolean)
-        }));
+          seccion: col[headers.indexOf("Colección")]
+        }))
+          .filter(p => p.resto > 0);
 
         cargarFiltros();
         mostrarProductos();
@@ -108,81 +105,76 @@
       const filtroSeccion = document.getElementById('filtroSeccion').value;
       const filtroTalla = document.getElementById('filtroTalla').value;
 
-      const agrupados = {};
-
-      productosData.forEach(p => {
-        const key = `${p.nombre}|${p.color}|${p.sexo}|${p.seccion}`;
-        if (!agrupados[key]) {
-          agrupados[key] = {
-            ...p,
-            variantes: []
-          };
-        }
-        agrupados[key].variantes.push({
-          tallaLetra: p.tallaLetra,
-          tallaNum: p.tallaNum,
-          stock: p.resto
-        });
-      });
-
-      const filtrados = Object.values(agrupados).filter(p =>
+      const filtrados = productosData.filter(p =>
         (!filtroSexo || p.sexo === filtroSexo) &&
         (!filtroSeccion || p.seccion === filtroSeccion) &&
-        (!filtroTalla || p.variantes.some(v => v.tallaLetra === filtroTalla))
+        (!filtroTalla || p.tallaLetra === filtroTalla)
       );
 
-      filtrados.forEach((producto, index) => {
+      const agrupados = {};
+      filtrados.forEach(p => {
+        const key = `${p.nombre}-${p.sexo}-${p.seccion}`;
+        if (!agrupados[key]) agrupados[key] = { nombre: p.nombre, sexo: p.sexo, seccion: p.seccion, colores: {} };
+        if (!agrupados[key].colores[p.color]) agrupados[key].colores[p.color] = [];
+        agrupados[key].colores[p.color].push({ tallaLetra: p.tallaLetra, tallaNum: p.tallaNum, precio: p.precio });
+      });
+
+      Object.values(agrupados).forEach((producto, index) => {
         const card = document.createElement('div');
         card.className = "bg-white rounded shadow p-4";
 
-        const sliderHtml = producto.imagenes.length > 0 ? `
-          <div class="relative w-full overflow-hidden">
-            <div class="flex transition-all ease-in-out duration-500" style="width:${producto.imagenes.length * 100}%" id="slider-${index}">
-              ${producto.imagenes.map(img => `<img src="${img}" class="w-full object-cover">`).join('')}
-            </div>
-            <div class="flex justify-center mt-2 gap-2">
-              ${producto.imagenes.map((_, i) => `<button onclick="moverSlider(${index}, ${i})" class="w-2 h-2 rounded-full bg-gray-400"></button>`).join('')}
-            </div>
-          </div>
-        ` : '';
+        const coloresHtml = (() => {
+  const mapaTallas = {};
+  Object.entries(producto.colores).forEach(([color, tallas]) => {
+    tallas.forEach(t => {
+      const key = `${t.tallaLetra} (${t.tallaNum}) - S/ ${t.precio}`;
+      if (!mapaTallas[key]) mapaTallas[key] = new Set();
+      mapaTallas[key].add(color);
+    });
+  });
 
-        const tallasHtml = `
-          <table class="w-full text-sm mt-2 text-center border">
-            <thead>
-              <tr class="bg-gray-200">
-                <th class="border px-1">Talla Letra</th>
-                <th class="border px-1">Talla Número</th>
-                <th class="border px-1">Stock</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${producto.variantes.map(v => `
-                <tr>
-                  <td class="border px-1">${v.tallaLetra}</td>
-                  <td class="border px-1">${v.tallaNum}</td>
-                  <td class="border px-1">${v.stock}</td>
-                </tr>`).join('')}
-            </tbody>
-          </table>`;
+  const rows = Object.entries(mapaTallas).map(([tallaPrecio, coloresSet]) => {
+    const [talla, precio] = tallaPrecio.split(' - ');
+    const colores = Array.from(coloresSet).join(', ');
+    return `<tr><td class='border px-2 py-1'>${talla}</td><td class='border px-2 py-1'>${colores}</td><td class='border px-2 py-1'>${precio}</td></tr>`;
+  }).join('');
+
+  return `<table class='w-full text-xs mt-2'>
+    <thead>
+      <tr class='bg-gray-100'>
+        <th class='text-left px-2 py-1 border'>Talla</th>
+        <th class='text-left px-2 py-1 border'>Colores disponibles</th>
+        <th class='text-left px-2 py-1 border'>Precio</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+})();
 
         card.innerHTML = `
-          ${sliderHtml}
-          <h2 class="text-lg font-bold mt-2">${producto.nombre}</h2>
-          <p class="text-sm">Sexo: ${producto.sexo}</p>
-          <p class="text-sm">Sección: ${producto.seccion}</p>
-          ${tallasHtml}
-          <a target="_blank" href="https://wa.me/51986475803?text=Hola, estoy interesada en ${encodeURIComponent(producto.nombre)}" class="inline-block mt-3 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Consultar por WhatsApp</a>
+          <button onclick="toggleDetalle(${index})" class="text-xl font-bold mb-2 text-left w-full hover:underline">${producto.nombre}</button>
+          <div class="text-sm">
+            <p class="mb-1">Sexo: ${producto.sexo}</p>
+            <p class="mb-1">Sección: ${producto.seccion}</p>
+            <div id="detalle-${index}" class="hidden">
+              ${coloresHtml}
+            </div>
+            <a target="_blank" href="https://wa.me/51986475803?text=Hola, estoy interesada en ${encodeURIComponent(producto.nombre)}" class="inline-block mt-3 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Consultar por WhatsApp</a>
+          </div>
         `;
         contenedor.appendChild(card);
       });
     }
 
-    function moverSlider(index, imgIndex) {
-      const slider = document.getElementById(`slider-${index}`);
-      if (slider) {
-        slider.style.transform = `translateX(-${imgIndex * 100}%)`;
-      }
+    function toggleDetalle(indice) {
+  document.querySelectorAll('[id^="detalle-"]').forEach((el, idx) => {
+    if (idx === indice) {
+      el.classList.toggle('hidden');
+    } else {
+      el.classList.add('hidden');
     }
+  });
+}
 
     cargarProductos();
   </script>
