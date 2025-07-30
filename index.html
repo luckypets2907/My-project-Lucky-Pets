@@ -5,6 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Catálogo de Productos</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .slide-img {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+    .slide-img.active {
+      opacity: 1;
+    }
+  </style>
 </head>
 <body class="bg-gray-100 font-sans">
   <div class="max-w-6xl mx-auto p-4">
@@ -37,7 +50,6 @@
         const res = await fetch(sheetUrl);
         const data = await res.text();
         const filas = data.trim().split('\n').map(f => f.split(','));
-
         const headers = filas[0].map(h => h.replace(/^"|"$/g, '').trim());
         const body = filas.slice(1);
 
@@ -54,7 +66,7 @@
             col[headers.indexOf("Imagen 1")],
             col[headers.indexOf("Imagen 2")],
             col[headers.indexOf("Imagen 3")]
-          ].filter(Boolean)
+          ].filter(url => url && url.startsWith("http"))
         }));
 
         cargarFiltros();
@@ -117,7 +129,9 @@
       const agrupados = {};
       filtrados.forEach(p => {
         const key = `${p.nombre}-${p.sexo}-${p.seccion}`;
-        if (!agrupados[key]) agrupados[key] = { nombre: p.nombre, sexo: p.sexo, seccion: p.seccion, colores: {}, imagenes: p.imagenes };
+        if (!agrupados[key]) agrupados[key] = {
+          nombre: p.nombre, sexo: p.sexo, seccion: p.seccion, colores: {}, imagenes: p.imagenes
+        };
         if (!agrupados[key].colores[p.color]) agrupados[key].colores[p.color] = [];
         agrupados[key].colores[p.color].push({ tallaLetra: p.tallaLetra, tallaNum: p.tallaNum, precio: p.precio });
       });
@@ -125,6 +139,13 @@
       Object.values(agrupados).forEach((producto, index) => {
         const card = document.createElement('div');
         card.className = "bg-white rounded shadow p-4";
+
+        const slideHtml = producto.imagenes.length > 0 ? `
+          <div class="relative w-full h-48 overflow-hidden mb-2" data-index="${index}">
+            ${producto.imagenes.map((url, i) => `
+              <img src="${url}" class="slide-img ${i === 0 ? 'active' : ''}" />
+            `).join('')}
+          </div>` : '';
 
         const coloresHtml = (() => {
           const mapaTallas = {};
@@ -154,37 +175,19 @@
           </table>`;
         })();
 
-        const sliderHtml = producto.imagenes.length > 0 ? `
-          <div class="relative w-full overflow-hidden rounded mb-2">
-            <div class="flex transition-transform duration-300 ease-in-out" id="slider-${index}">
-              ${producto.imagenes.map(img => `<img src="${img}" alt="${producto.nombre}" class="w-full h-48 object-cover flex-shrink-0">`).join('')}
-            </div>
-            <div class="flex justify-center gap-2 mt-1">
-              ${producto.imagenes.map((_, i) => `<button onclick="moverSlide(${index}, ${i})" class="w-2 h-2 rounded-full bg-gray-400 hover:bg-gray-600"></button>`).join('')}
-            </div>
-          </div>` : '';
-
         card.innerHTML = `
-          ${sliderHtml}
+          ${slideHtml}
           <button onclick="toggleDetalle(${index})" class="text-xl font-bold mb-2 text-left w-full hover:underline">${producto.nombre}</button>
           <div class="text-sm">
             <p class="mb-1">Sexo: ${producto.sexo}</p>
             <p class="mb-1">Sección: ${producto.seccion}</p>
-            <div id="detalle-${index}" class="hidden">
-              ${coloresHtml}
-            </div>
+            <div id="detalle-${index}" class="hidden">${coloresHtml}</div>
             <a target="_blank" href="https://wa.me/51986475803?text=Hola, estoy interesada en ${encodeURIComponent(producto.nombre)}" class="inline-block mt-3 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Consultar por WhatsApp</a>
-          </div>
-        `;
-
+          </div>`;
         contenedor.appendChild(card);
       });
-    }
 
-    function moverSlide(index, slideIndex) {
-      const slider = document.getElementById(`slider-${index}`);
-      const width = slider.offsetWidth;
-      slider.style.transform = `translateX(-${slideIndex * width}px)`;
+      iniciarSlides();
     }
 
     function toggleDetalle(indice) {
@@ -194,6 +197,17 @@
         } else {
           el.classList.add('hidden');
         }
+      });
+    }
+
+    function iniciarSlides() {
+      document.querySelectorAll('[data-index]').forEach(div => {
+        const slides = div.querySelectorAll('.slide-img');
+        let i = 0;
+        setInterval(() => {
+          slides.forEach((img, j) => img.classList.toggle('active', j === i));
+          i = (i + 1) % slides.length;
+        }, 3000);
       });
     }
 
