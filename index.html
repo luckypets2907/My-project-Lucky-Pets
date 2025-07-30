@@ -28,7 +28,20 @@ async function cargarProductos() {
     return obj;
   });
 
-  mostrarProductos(productos);
+  const agrupados = {};
+  productos.forEach(p => {
+    const key = `${p["Producto"]}-${p["Sexo"]}-${p["Colección"]}`;
+    if (!agrupados[key]) agrupados[key] = { ...p, tallas: [], imagenes: [] };
+    agrupados[key].tallas.push({
+      tallaLetra: p["Talla en letras"],
+      tallaNum: p["Talla en número"],
+      color: p["Color"],
+      precio: p["PV_Minorista"]
+    });
+    agrupados[key].imagenes = [p["Imagen 1"], p["Imagen 2"], p["Imagen 3"]].filter(Boolean);
+  });
+
+  mostrarProductos(Object.values(agrupados));
 }
 
 function mostrarProductos(productos) {
@@ -36,14 +49,20 @@ function mostrarProductos(productos) {
   contenedor.innerHTML = '';
 
   productos.forEach((p, i) => {
-    const imagenes = [p["Imagen 1"], p["Imagen 2"], p["Imagen 3"]].filter(url => url);
-    const imagenesHtml = imagenes.map((url, idx) => `
+    const imagenesHtml = p.imagenes.map((url, idx) => `
       <img src="${url}" class="w-full h-60 object-contain ${idx === 0 ? '' : 'hidden'}" data-index="${idx}">
     `).join('');
 
-    const dots = imagenes.map((_, idx) => `
+    const dots = p.imagenes.map((_, idx) => `
       <button class="h-2 w-2 rounded-full ${idx === 0 ? 'bg-gray-800' : 'bg-gray-400'}" onclick="mostrarSlide(${i}, ${idx})"></button>
     `).join('');
+
+    const tallasHTML = p.tallas.map(t => `
+      <tr>
+        <td class='border px-2 py-1'>${t.tallaLetra} (${t.tallaNum})</td>
+        <td class='border px-2 py-1'>${t.color}</td>
+        <td class='border px-2 py-1'>S/ ${t.precio}</td>
+      </tr>`).join('');
 
     const card = document.createElement('div');
     card.className = "bg-white rounded shadow p-4";
@@ -54,13 +73,27 @@ function mostrarProductos(productos) {
         </div>
         <div class="flex justify-center gap-2 mb-2">${dots}</div>
       </div>
-      <h2 class="text-xl font-bold">${p["Producto"]}</h2>
-      <p>Sexo: ${p["Sexo"]}</p>
-      <p>Sección: ${p["Colección"]}</p>
-      <a target="_blank" href="https://wa.me/51986475803?text=Hola, estoy interesada en ${encodeURIComponent(p["Producto"])}"
-         class="mt-3 inline-block bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-        Consultar por WhatsApp
-      </a>
+      <button onclick="toggleDetalle(${i})" class="text-xl font-bold mb-2 text-left w-full hover:underline">${p["Producto"]}</button>
+      <div class="text-sm">
+        <p class="mb-1">Sexo: ${p["Sexo"]}</p>
+        <p class="mb-1">Sección: ${p["Colección"]}</p>
+        <div id="detalle-${i}" class="hidden">
+          <table class='w-full text-xs mt-2'>
+            <thead>
+              <tr class='bg-gray-100'>
+                <th class='text-left px-2 py-1 border'>Talla</th>
+                <th class='text-left px-2 py-1 border'>Color</th>
+                <th class='text-left px-2 py-1 border'>Precio</th>
+              </tr>
+            </thead>
+            <tbody>${tallasHTML}</tbody>
+          </table>
+        </div>
+        <a target="_blank" href="https://wa.me/51986475803?text=Hola, estoy interesada en ${encodeURIComponent(p["Producto"])}"
+           class="inline-block mt-3 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+          Consultar por WhatsApp
+        </a>
+      </div>
     `;
     contenedor.appendChild(card);
   });
@@ -76,6 +109,12 @@ function mostrarSlide(prodIndex, imgIndex) {
   const dots = slider.parentElement.querySelectorAll('button');
   dots.forEach((dot, idx) => {
     dot.className = `h-2 w-2 rounded-full ${idx === imgIndex ? 'bg-gray-800' : 'bg-gray-400'}`;
+  });
+}
+
+function toggleDetalle(indice) {
+  document.querySelectorAll('[id^="detalle-"]').forEach((el, idx) => {
+    el.classList.toggle('hidden', idx !== indice || el.classList.contains('hidden'));
   });
 }
 
