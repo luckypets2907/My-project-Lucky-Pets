@@ -51,61 +51,64 @@
     <div id="productos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
   </div>
 
+  <!-- FOOTER REDES SOCIALES -->
+  <footer class="bg-white shadow mt-12 py-6">
+    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center px-4 gap-4">
+      <p class="text-sm text-gray-600 text-center sm:text-left">© 2025 Mi Catálogo. Todos los derechos reservados.</p>
+      <div class="flex gap-4">
+        <a href="https://www.instagram.com/TU_USUARIO/" target="_blank" title="Instagram" class="text-gray-500 hover:text-pink-600 text-xl">
+          <svg fill="currentColor" viewBox="0 0 24 24" class="w-6 h-6">
+            <path d="M7.75 2A5.75 5.75 0 0 0 2 7.75v8.5A5.75 5.75 0 0 0 7.75 22h8.5A5.75 5.75 0 0 0 22 16.25v-8.5A5.75 5.75 0 0 0 16.25 2h-8.5ZM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 1.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm4.88-.88a1.13 1.13 0 1 1-2.26 0 1.13 1.13 0 0 1 2.26 0Z"/>
+          </svg>
+        </a>
+        <a href="https://www.facebook.com/TU_USUARIO/" target="_blank" title="Facebook" class="text-gray-500 hover:text-blue-600 text-xl">
+          <svg fill="currentColor" viewBox="0 0 24 24" class="w-6 h-6">
+            <path d="M13 10h4.5l-.5 4H13v10h-4V14H6v-4h3V7.5A4.5 4.5 0 0 1 13.5 3H17v4h-3a1 1 0 0 0-1 1V10Z"/>
+          </svg>
+        </a>
+        <a href="https://www.tiktok.com/@TU_USUARIO" target="_blank" title="TikTok" class="text-gray-500 hover:text-black text-xl">
+          <svg fill="currentColor" viewBox="0 0 24 24" class="w-6 h-6">
+            <path d="M9.5 3A6.5 6.5 0 0 0 3 9.5v5a6.5 6.5 0 1 0 13 0v-2.444a9.437 9.437 0 0 0 4 0V7.5c-.59-.04-2.26-.22-3.5-1.5-1.05-1.08-1.5-2.5-1.5-3H11c.09 1.27.56 3.42 2.5 5.06 1.06.89 2.29 1.3 3.5 1.44v1.56a7.442 7.442 0 0 1-4 0v3.44a4.5 4.5 0 1 1-9 0v-5A4.5 4.5 0 0 1 9.5 5V3Z"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </footer>
+
   <script>
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKlAxnSIcEhnhq6R4o7gtrqS8AgQ98XD5RQmu_sC5XaFmb5T_Vi8X9qramRm-6ndphgRzcMPUOy1fV/pub?gid=964983527&single=true&output=csv";
-    const imagenesSheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKlAxnSIcEhnhq6R4o7gtrqS8AgQ98XD5RQmu_sC5XaFmb5T_Vi8X9qramRm-6ndphgRzcMPUOy1fV/pub?gid=1756346226&single=true&output=csv";
 
     let productosData = [];
 
     async function cargarProductos() {
       try {
-        const [resProductos, resImagenes] = await Promise.all([
-          fetch(sheetUrl),
-          fetch(imagenesSheetUrl)
-        ]);
-        const [dataProductos, dataImagenes] = await Promise.all([
-          resProductos.text(),
-          resImagenes.text()
-        ]);
+        const res = await fetch(sheetUrl);
+        const data = await res.text();
+        const filas = data.trim().split('\n').map(f => f.split(','));
+        const headers = filas[0].map(h => h.replace(/^"|"$/g, '').trim());
+        const body = filas.slice(1);
 
-        const filasProductos = dataProductos.trim().split('\n').map(f => f.split(','));
-        const headersProductos = filasProductos[0].map(h => h.replace(/^"|"$/g, '').trim());
-        const bodyProductos = filasProductos.slice(1);
-
-        const filasImagenes = dataImagenes.trim().split('\n').map(f => f.split(','));
-        const headersImagenes = filasImagenes[0].map(h => h.replace(/^"|"$/g, '').trim());
-        const bodyImagenes = filasImagenes.slice(1);
-
-        const imagenesPorProducto = {};
-        bodyImagenes.forEach(col => {
-          const nombre = col[headersImagenes.indexOf("Producto")];
-          imagenesPorProducto[nombre] = [
-            col[headersImagenes.indexOf("Imagen 1")],
-            col[headersImagenes.indexOf("Imagen 2")],
-            col[headersImagenes.indexOf("Imagen 3")]
-          ].filter(url => url && url.startsWith("http"));
-        });
-
-        productosData = bodyProductos.map(col => {
-          const nombreProducto = col[headersProductos.indexOf("Producto")];
-          return {
-            nombre: nombreProducto,
-            color: col[headersProductos.indexOf("Color")],
-            tallaNum: col[headersProductos.indexOf("Talla en número")],
-            tallaLetra: col[headersProductos.indexOf("Talla en letras")],
-            precio: col[headersProductos.indexOf("PV_Minorista")],
-            cantidad: col[headersProductos.indexOf("Cantidad comprada")],
-            sexo: col[headersProductos.indexOf("Sexo")],
-            seccion: col[headersProductos.indexOf("Colección")],
-            imagenes: imagenesPorProducto[nombreProducto] || []
-          };
-        });
+        productosData = body.map(col => ({
+          nombre: col[headers.indexOf("Producto")],
+          color: col[headers.indexOf("Color")],
+          tallaNum: col[headers.indexOf("Talla en número")],
+          tallaLetra: col[headers.indexOf("Talla en letras")],
+          precio: col[headers.indexOf("PV_Minorista")],
+          cantidad: col[headers.indexOf("Cantidad comprada")],
+          sexo: col[headers.indexOf("Sexo")],
+          seccion: col[headers.indexOf("Colección")],
+          imagenes: [
+            col[headers.indexOf("Imagen 1")],
+            col[headers.indexOf("Imagen 2")],
+            col[headers.indexOf("Imagen 3")]
+          ].filter(url => url && url.startsWith("http"))
+        }));
 
         cargarFiltros();
         mostrarProductos();
       } catch (error) {
-        console.error("Error al cargar productos o imágenes:", error);
-        document.getElementById('productos').innerHTML = '<p class="text-center text-red-600">Error al cargar productos o imágenes.</p>';
+        console.error("Error al cargar productos:", error);
+        document.getElementById('productos').innerHTML = '<p class="text-center text-red-600">Error al cargar productos. Verifica el enlace del Sheet.</p>';
       }
     }
 
