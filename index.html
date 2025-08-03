@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Catálogo de Productos</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -27,12 +27,33 @@
     .slider-image.active {
       opacity: 1;
     }
+    .lightbox-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .lightbox-overlay img {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 8px;
+      box-shadow: 0 0 20px #fff;
+    }
+    .lightbox-overlay.close {
+      display: none;
+    }
   </style>
 </head>
 <body class="bg-gray-100 font-sans">
   <div class="max-w-6xl mx-auto p-4">
     <div class="flex items-center justify-start gap-4 mb-8 px-4">
-      <img src="https://i.imgur.com/beTXeou.png" alt="Logo" class="h-20 w-auto" />
+      <img src="https://i.imgur.com/beTXeou.png" alt="Logo" class="h-20 w-auto">
       <h1 class="text-3xl font-bold">Catálogo de Productos</h1>
     </div>
 
@@ -51,61 +72,43 @@
     <div id="productos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
   </div>
 
+  <div id="lightbox" class="lightbox-overlay close" onclick="cerrarLightbox()">
+    <img id="lightbox-img" src="" alt="Imagen ampliada">
+  </div>
+
   <script>
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKlAxnSIcEhnhq6R4o7gtrqS8AgQ98XD5RQmu_sC5XaFmb5T_Vi8X9qramRm-6ndphgRzcMPUOy1fV/pub?gid=964983527&single=true&output=csv";
-    const imagenesSheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQKlAxnSIcEhnhq6R4o7gtrqS8AgQ98XD5RQmu_sC5XaFmb5T_Vi8X9qramRm-6ndphgRzcMPUOy1fV/pub?gid=1756346226&single=true&output=csv";
-
     let productosData = [];
 
     async function cargarProductos() {
       try {
-        const [resProductos, resImagenes] = await Promise.all([
-          fetch(sheetUrl),
-          fetch(imagenesSheetUrl)
-        ]);
-        const [dataProductos, dataImagenes] = await Promise.all([
-          resProductos.text(),
-          resImagenes.text()
-        ]);
+        const res = await fetch(sheetUrl);
+        const data = await res.text();
+        const filas = data.trim().split('\n').map(f => f.split(','));
+        const headers = filas[0].map(h => h.replace(/^"|"$/g, '').trim());
+        const body = filas.slice(1);
 
-        const filasProductos = dataProductos.trim().split('\n').map(f => f.split(','));
-        const headersProductos = filasProductos[0].map(h => h.replace(/^"|"$/g, '').trim());
-        const bodyProductos = filasProductos.slice(1);
-
-        const filasImagenes = dataImagenes.trim().split('\n').map(f => f.split(','));
-        const headersImagenes = filasImagenes[0].map(h => h.replace(/^"|"$/g, '').trim());
-        const bodyImagenes = filasImagenes.slice(1);
-
-        const imagenesPorProducto = {};
-        bodyImagenes.forEach(col => {
-          const nombre = col[headersImagenes.indexOf("Producto")];
-          imagenesPorProducto[nombre] = [
-            col[headersImagenes.indexOf("Imagen 1")],
-            col[headersImagenes.indexOf("Imagen 2")],
-            col[headersImagenes.indexOf("Imagen 3")]
-          ].filter(url => url && url.startsWith("http"));
-        });
-
-        productosData = bodyProductos.map(col => {
-          const nombreProducto = col[headersProductos.indexOf("Producto")];
-          return {
-            nombre: nombreProducto,
-            color: col[headersProductos.indexOf("Color")],
-            tallaNum: col[headersProductos.indexOf("Talla en número")],
-            tallaLetra: col[headersProductos.indexOf("Talla en letras")],
-            precio: col[headersProductos.indexOf("PV_Minorista")],
-            cantidad: col[headersProductos.indexOf("Cantidad comprada")],
-            sexo: col[headersProductos.indexOf("Sexo")],
-            seccion: col[headersProductos.indexOf("Colección")],
-            imagenes: imagenesPorProducto[nombreProducto] || []
-          };
-        });
+        productosData = body.map(col => ({
+          nombre: col[headers.indexOf("Producto")],
+          color: col[headers.indexOf("Color")],
+          tallaNum: col[headers.indexOf("Talla en número")],
+          tallaLetra: col[headers.indexOf("Talla en letras")],
+          precio: col[headers.indexOf("PV_Minorista")],
+          cantidad: col[headers.indexOf("Cantidad comprada")],
+          sexo: col[headers.indexOf("Sexo")],
+          seccion: col[headers.indexOf("Colección")],
+          imagenes: [
+            col[headers.indexOf("Imagen 1")],
+            col[headers.indexOf("Imagen 2")],
+            col[headers.indexOf("Imagen 3")]
+          ].filter(url => url && url.startsWith("http"))
+        }));
 
         cargarFiltros();
         mostrarProductos();
       } catch (error) {
-        console.error("Error al cargar productos o imágenes:", error);
-        document.getElementById('productos').innerHTML = '<p class="text-center text-red-600">Error al cargar productos o imágenes.</p>';
+        console.error("Error al cargar productos:", error);
+        document.getElementById('productos').innerHTML = '<p class="text-center text-red-600">Error al cargar productos. Verifica el enlace del Sheet.</p>';
       }
     }
 
@@ -175,7 +178,7 @@
         const sliderHtml = producto.imagenes.length > 0 ? `
           <div class="slider-container mb-2" id="slider-${index}">
             ${producto.imagenes.map((url, i) => `
-              <img src="${url}" class="slider-image ${i === 0 ? 'active' : ''}" alt="${producto.nombre}">
+              <img src="${url}" class="slider-image ${i === 0 ? 'active' : ''}" alt="${producto.nombre}" onclick="abrirLightbox('${url}')">
             `).join('')}
           </div>
         ` : '';
@@ -226,7 +229,11 @@
 
     function toggleDetalle(indice) {
       document.querySelectorAll('[id^="detalle-"]').forEach((el, idx) => {
-        el.classList.toggle('hidden', idx !== indice);
+        if (idx === indice) {
+          el.classList.toggle('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
       });
     }
 
@@ -239,6 +246,20 @@
           i = (i + 1) % images.length;
         }, 3000);
       });
+    }
+
+    function abrirLightbox(url) {
+      const lightbox = document.getElementById('lightbox');
+      const img = document.getElementById('lightbox-img');
+      img.src = url;
+      lightbox.classList.remove('close');
+    }
+
+    function cerrarLightbox() {
+      const lightbox = document.getElementById('lightbox');
+      const img = document.getElementById('lightbox-img');
+      img.src = '';
+      lightbox.classList.add('close');
     }
 
     cargarProductos();
