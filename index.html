@@ -28,19 +28,21 @@
     .slider-image.active {
       opacity: 1;
     }
-    .lightbox {
+    .modal {
+      display: none;
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.8);
-      display: flex;
+      z-index: 9999;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.9);
       align-items: center;
       justify-content: center;
-      z-index: 50;
     }
-    .lightbox img {
+    .modal img {
       max-width: 90%;
       max-height: 90%;
-      border-radius: 0.5rem;
     }
   </style>
 </head>
@@ -52,16 +54,23 @@
     </div>
 
     <div class="flex flex-col sm:flex-row gap-4 sm:justify-end justify-start mb-6 px-4">
-      <select id="filtroSexo" class="p-2 border rounded"><option value="">Todos los sexos</option></select>
-      <select id="filtroSeccion" class="p-2 border rounded"><option value="">Todas las secciones</option></select>
-      <select id="filtroTalla" class="p-2 border rounded"><option value="">Todas las tallas</option></select>
+      <select id="filtroSexo" class="p-2 border rounded">
+        <option value="">Todos los sexos</option>
+      </select>
+      <select id="filtroSeccion" class="p-2 border rounded">
+        <option value="">Todas las secciones</option>
+      </select>
+      <select id="filtroTalla" class="p-2 border rounded">
+        <option value="">Todas las tallas</option>
+      </select>
     </div>
 
     <div id="productos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
   </div>
 
-  <div id="lightbox" class="lightbox hidden" onclick="this.classList.add('hidden')">
-    <img id="lightbox-img" src="" alt="Imagen ampliada">
+  <!-- Modal -->
+  <div id="modal" class="modal" onclick="cerrarModal()">
+    <img id="modalImg" src="" alt="Imagen ampliada" />
   </div>
 
   <script>
@@ -96,7 +105,7 @@
         mostrarProductos();
       } catch (error) {
         console.error("Error al cargar productos:", error);
-        document.getElementById('productos').innerHTML = '<p class="text-center text-red-600">Error al cargar productos.</p>';
+        document.getElementById('productos').innerHTML = '<p class="text-center text-red-600">Error al cargar productos. Verifica el enlace del Sheet.</p>';
       }
     }
 
@@ -166,7 +175,7 @@
         const sliderHtml = producto.imagenes.length > 0 ? `
           <div class="slider-container mb-2" id="slider-${index}">
             ${producto.imagenes.map((url, i) => `
-              <img src="${url}" class="slider-image ${i === 0 ? 'active' : ''}" alt="${producto.nombre}" onclick="verImagenAmpliada('${url}')">
+              <img src="${url}" class="slider-image ${i === 0 ? 'active' : ''}" alt="${producto.nombre}" onclick="abrirModal('${url}')">
             `).join('')}
           </div>
         ` : '';
@@ -217,8 +226,11 @@
 
     function toggleDetalle(indice) {
       document.querySelectorAll('[id^="detalle-"]').forEach((el, idx) => {
-        if (idx === indice) el.classList.toggle('hidden');
-        else el.classList.add('hidden');
+        if (idx === indice) {
+          el.classList.toggle('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
       });
     }
 
@@ -233,11 +245,16 @@
       });
     }
 
-    function verImagenAmpliada(url) {
-      const lightbox = document.getElementById('lightbox');
-      const lightboxImg = document.getElementById('lightbox-img');
-      lightboxImg.src = url;
-      lightbox.classList.remove('hidden');
+    function abrirModal(url) {
+      const modal = document.getElementById('modal');
+      const modalImg = document.getElementById('modalImg');
+      modalImg.src = url;
+      modal.style.display = 'flex';
+    }
+
+    function cerrarModal() {
+      const modal = document.getElementById('modal');
+      modal.style.display = 'none';
     }
 
     cargarProductos();
