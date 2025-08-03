@@ -80,8 +80,7 @@
         bodyImagenes.forEach(col => {
           const nombre = col[headersImagenes.indexOf("Producto")];
           const sexo = col[headersImagenes.indexOf("Sexo")];
-          const key = `${nombre}|||${sexo}`;
-          imagenesPorProducto[key] = [
+          imagenesPorProducto[`${nombre}-${sexo}`] = [
             col[headersImagenes.indexOf("Imagen 1")],
             col[headersImagenes.indexOf("Imagen 2")],
             col[headersImagenes.indexOf("Imagen 3")]
@@ -91,7 +90,6 @@
         productosData = bodyProductos.map(col => {
           const nombreProducto = col[headersProductos.indexOf("Producto")];
           const sexo = col[headersProductos.indexOf("Sexo")];
-          const key = `${nombreProducto}|||${sexo}`;
           return {
             nombre: nombreProducto,
             color: col[headersProductos.indexOf("Color")],
@@ -101,7 +99,7 @@
             cantidad: col[headersProductos.indexOf("Cantidad comprada")],
             sexo: sexo,
             seccion: col[headersProductos.indexOf("Colección")],
-            imagenes: imagenesPorProducto[key] || []
+            imagenes: imagenesPorProducto[`${nombreProducto}-${sexo}`] || []
           };
         });
 
@@ -122,26 +120,9 @@
       const secciones = [...new Set(productosData.map(p => p.seccion).filter(Boolean))];
       const tallas = [...new Set(productosData.map(p => p.tallaLetra).filter(Boolean))];
 
-      sexos.forEach(s => {
-        const option = document.createElement('option');
-        option.value = s;
-        option.textContent = s;
-        filtroSexo.appendChild(option);
-      });
-
-      secciones.forEach(s => {
-        const option = document.createElement('option');
-        option.value = s;
-        option.textContent = s;
-        filtroSeccion.appendChild(option);
-      });
-
-      tallas.forEach(t => {
-        const option = document.createElement('option');
-        option.value = t;
-        option.textContent = t;
-        filtroTalla.appendChild(option);
-      });
+      sexos.forEach(s => filtroSexo.innerHTML += `<option value="${s}">${s}</option>`);
+      secciones.forEach(s => filtroSeccion.innerHTML += `<option value="${s}">${s}</option>`);
+      tallas.forEach(t => filtroTalla.innerHTML += `<option value="${t}">${t}</option>`);
 
       filtroSexo.addEventListener('change', mostrarProductos);
       filtroSeccion.addEventListener('change', mostrarProductos);
@@ -185,20 +166,41 @@
         ` : '';
 
         const coloresHtml = (() => {
-          const mapaTallas = {};
+          const mapaTallas = [];
           Object.entries(producto.colores).forEach(([color, tallas]) => {
             tallas.forEach(t => {
-              const key = `${t.tallaLetra} (${t.tallaNum}) - S/ ${t.precio}`;
-              if (!mapaTallas[key]) mapaTallas[key] = new Set();
-              mapaTallas[key].add(color);
+              mapaTallas.push({
+                talla: `${t.tallaLetra} (${t.tallaNum})`,
+                color,
+                precio: parseFloat(t.precio)
+              });
             });
           });
 
-          const rows = Object.entries(mapaTallas).map(([tallaPrecio, coloresSet]) => {
-            const [talla, precio] = tallaPrecio.split(' - ');
-            const colores = Array.from(coloresSet).join(', ');
-            return `<tr><td class='border px-2 py-1'>${talla}</td><td class='border px-2 py-1'>${colores}</td><td class='border px-2 py-1'>${precio}</td></tr>`;
-          }).join('');
+          const agrupado = {};
+          mapaTallas.forEach(({ talla, color, precio }) => {
+            const key = `${talla} - ${precio}`;
+            if (!agrupado[key]) agrupado[key] = new Set();
+            agrupado[key].add(color);
+          });
+
+          const filasOrdenadas = Object.entries(agrupado)
+            .map(([key, colores]) => {
+              const [talla, precio] = key.split(' - ');
+              return {
+                talla,
+                precio: parseFloat(precio),
+                colores: Array.from(colores).join(', ')
+              };
+            })
+            .sort((a, b) => a.precio - b.precio)
+            .map(fila => `
+              <tr>
+                <td class='border px-2 py-1'>${fila.talla}</td>
+                <td class='border px-2 py-1'>${fila.colores}</td>
+                <td class='border px-2 py-1'>S/ ${fila.precio}</td>
+              </tr>
+            `).join('');
 
           return `<table class='w-full text-xs mt-2'>
             <thead>
@@ -208,7 +210,7 @@
                 <th class='text-left px-2 py-1 border'>Precio</th>
               </tr>
             </thead>
-            <tbody>${rows}</tbody>
+            <tbody>${filasOrdenadas}</tbody>
           </table>`;
         })();
 
@@ -247,7 +249,5 @@
 
     cargarProductos();
   </script>
-
-  <!-- Footer de redes sociales aquí (como ya tienes incluido) -->
 </body>
 </html>
